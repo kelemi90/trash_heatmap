@@ -1,0 +1,26 @@
+body{
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.map-container{
+    position:relative;
+    width:100%;
+    max-width:1000px;
+}
+
+.map-container img{
+    width:100%;
+    display:block;
+}
+
+.marker{
+    position:absolute;
+    width:16px;
+    height:16px;
+    border-radius:50%;
+    transform:translate(-50%,-50%);
+}
+
+.red { background:red; }
+.orange { background:orange; }
+.green { background:green; }

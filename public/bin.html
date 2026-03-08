@@ -1,0 +1,46 @@
+<h2>Empty Trash Bin</h2>
+
+<input id="user" placeholder="username">
+
+<button onclick="send()">Empty Bin</button>
+<script>
+
+
+const params = new URLSearchParams(window.location.search)
+const bin = params.get("bin")
+
+function send(){
+    const user = localStorage.getItem("user") || document.getElementById("user").value
+
+    fetch("/api/epmty",{
+        method:"POST",
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+            bin_id:bin,
+            user:user
+        })
+    })
+    .then(r=>r.json())
+    .then(data=>{
+
+        alert(data.message)
+    })
+}
+// function send(){
+// 
+// const user = document.getElementById("user").value
+// 
+// fetch("/api/empty",{
+// method:"POST",
+// headers:{'Content-Type':'application/json'},
+// body:JSON.stringify({
+// bin_id:bin,
+// user:user
+// })
+// })
+// 
+// alert("Logged")
+// 
+// }
+
+</script>

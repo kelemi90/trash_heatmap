@@ -1,0 +1,13 @@
+fetch("/api/heatmap")
+.then(r=>r.json())
+.then(data=>{
+
+data.forEach(p=>{
+heatmap.addData({
+x:p.x,
+y:p.y,
+value:p.value
+})
+})
+
+})

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Trash Bin QR Labels</title>
+        <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+        <style>
+            body{
+                font-family:Arial;
+            }
+
+            #controls{
+                margin-bottom:20px;
+            }
+
+            #labels{
+                display:grid;
+                grid-template-columns: repeat(4, 200px);
+                gap:20px;
+            }
+
+            .label{
+                width:200px;
+                height:220px;
+
+                border:2px solid black;
+                border-radius:10px;
+
+                text-align:center;
+
+                padding:10px;
+
+                box-sizing:border-box;
+            }
+
+            .title{
+                font-size:20px;
+                font-weight:bold;
+
+                margin-bottom:5px;
+            }
+
+            .subtitle{
+                font-size:12px;
+                margin-bottom:5px;
+            }
+
+            canvas{
+                margin:auto;
+            }
+
+            .scan{
+                font-size:12px;
+                margin-top:5px;
+            }
+
+        </style>
+
+    </head>
+    <body>
+        <h1>Trash Bin QR Code Generator</h1>
+        <div id="controls">
+            Server URL:
+            <input id="server"
+            value="http://localhost:3000"
+            style="width:250px">
+
+            Number of bins:
+            <input id="count"
+            value="55"
+            style="width:60px">
+
+            <button onclick="generate()">Generate QR Codes</button>
+            <button onclick="window.print()">Print Sheet</button>
+        </div>
+
+        <div id="labels"></div>
+
+        <script>
+            function generate(){
+                const server = document.getElementById("server").value
+                const count = parseInt(document.getElementById("count").value)
+                
+                const grid = document.getElementById("labels")
+
+                container.innerHTML=""
+
+                for(let i=1;1<=count;i++){
+
+                    const url = server+"/bin.html?bin="+i
+
+                    let label = document.createElement("div")
+                    label.className="label"
+
+                    let title = document.createElement("div")
+                    title.className="title"
+                    title.innerText="BIN "+i
+                    
+                    let subtitle = document.createElement("div")
+                    subtitle.className="subtitle"
+                    subtitle.innerText="Trash Collection"
+
+                    let canvas = document.createElement("canvas")
+
+                    QECode,toCanvas(canvas,url,{
+                        width:140
+                    })
+
+                    let scan = document.createElement("div")
+                    scan.className="scan"
+                    scan.innerText="Scan when emptied"
+
+                    label.appendChild(title)
+                    label.appendChild(subtitle)
+                    label.appendChild(canvas)
+                    label.appendChild(scan)
+
+                    container.appendChild(label)
+
+                }
+            }
+        </script>
+    </body>
+</html>

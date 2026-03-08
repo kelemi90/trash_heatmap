@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Bin Editor</title>
+
+<link rel="stylesheet" href="/css/style.css">
+
+<script src="/js/map.js"></script>
+
+<style>
+
+.marker{
+position:absolute;
+width:20px;
+height:20px;
+border-radius:50%;
+background:red;
+transform:translate(-50%,-50%);
+cursor:pointer;
+color:white;
+font-size:10px;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2>Drag Trash Bins To Correct Locations</h2>
+
+<div class="map-container" id="map">
+
+<img src="/map/pohjakartta.png">
+
+</div>
+
+<script>
+
+const map = document.getElementById("map")
+
+let dragging = null
+
+fetch("/api/bins")
+.then(r=>r.json())
+.then(bins=>{
+
+bins.forEach(b=>{
+
+createMarker(b)
+
+})
+
+})
+
+function createMarker(bin){
+
+let marker = document.createElement("div")
+
+marker.className="marker"
+marker.innerText=bin.id
+
+const screen = mapToScreen(bin.x,bin.y,map)
+
+marker.style.left = screen.x+"px"
+marker.style.top = screen.y+"px"
+
+marker.dataset.id = bin.id
+
+marker.addEventListener("mousedown",startDrag)
+
+map.appendChild(marker)
+
+}
+
+function startDrag(e){
+
+dragging = e.target
+
+document.addEventListener("mousemove",drag)
+document.addEventListener("mouseup",stopDrag)
+
+}
+
+function drag(e){
+
+if(!dragging) return
+
+const rect = map.getBoundingClientRect()
+
+let x = e.clientX - rect.left
+let y = e.clientY - rect.top
+
+dragging.style.left = x+"px"
+dragging.style.top = y+"px"
+
+}
+
+function stopDrag(e){
+
+if(!dragging) return
+
+const rect = map.getBoundingClientRect()
+
+const screenX = e.clientX - rect.left
+const screenY = e.clientY - rect.top
+
+const pos = screenToMap(screenX,screenY,map)
+
+const id = dragging.dataset.id
+
+fetch("/api/bin/update",{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({
+id:id,
+x:pos.x,
+y:pos.y
+})
+})
+
+dragging = null
+
+document.removeEventListener("mousemove",drag)
+document.removeEventListener("mouseup",stopDrag)
+
+}
+
+</script>
+
+</body>
+</html>

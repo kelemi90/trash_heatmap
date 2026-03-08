@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Bin Status</title>
+
+<link rel="stylesheet" href="/css/style.css">
+
+<script src="/js/map.js"></script>
+
+</head>
+
+<body>
+
+<h2>Live Trash Bin Status</h2>
+
+<div class="map-container" id="map">
+
+<img src="/map/pohjakartta.png">
+
+</div>
+
+<script>
+
+const map = document.getElementById("map")
+
+fetch("/api/status")
+.then(r=>r.json())
+.then(bins=>{
+
+bins.forEach(b=>{
+
+const screen = mapToScreen(b.x,b.y,map)
+
+let marker = document.createElement("div")
+
+marker.className = "marker"
+
+marker.style.left = screen.x+"px"
+marker.style.top = screen.y+"px"
+
+const minutes = (Date.now() - new Date(b.last)) / 60000
+
+if(minutes > 90)
+marker.classList.add("red")
+else if(minutes > 45)
+marker.classList.add("orange")
+else
+marker.classList.add("green")
+
+map.appendChild(marker)
+
+})
+
+})
+
+</script>
+
+</body>
+
+</html>

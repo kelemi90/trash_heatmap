@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Trash Heatmap</title>
+
+<link rel="stylesheet" href="/css/style.css">
+
+<script src="/js/map.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/heatmapjs"></script>
+
+</head>
+
+<body>
+
+<h2>Trash Heatmap</h2>
+
+<div class="map-container" id="map">
+
+<img src="/map/pohjakartta.png">
+
+<div id="heatLayer" style="position:absolute;top:0;left:0;width:100%;height:100%"></div>
+
+</div>
+
+<script>
+
+const map = document.getElementById("map")
+
+const heatmap = h337.create({
+container: document.getElementById("heatLayer"),
+radius:40
+})
+
+fetch("/api/heatmap")
+.then(r=>r.json())
+.then(data=>{
+
+const points = data.map(p=>{
+
+const screen = mapToScreen(p.x,p.y,map)
+
+return {
+x:screen.x,
+y:screen.y,
+value:p.value
+}
+
+})
+
+heatmap.setData({
+max:100,
+data:points
+})
+
+})
+
+</script>
+
+</body>
+
+</html>
