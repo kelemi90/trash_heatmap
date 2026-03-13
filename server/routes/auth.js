@@ -1,26 +1,38 @@
 const express = require("express")
 const router = express.Router()
-const bcrupt = require("bcrypt")
-const db = require("../db")
 
-router.post("/login",(req,res)=>{
+router.post("/admin/login",(req,res)=>{
 
-const {username,password} = req.body
+const username = req.body?.username
+const password = req.body?.password
 
-db.get("SELECT * FROM users WHERE username=?", [username], async (err,user)=>{
-if(!user) return res.json({success:false})
+if(username === "Buildcat" && password === "buildcat"){
 
-const valid = await bcrytp.compape(password,user.password)
+req.session.admin = true
+return res.json({success:true})
 
-if(!valid) return res.json({success:false})
+}
 
-req.session.user = user.username
-req.session.role = user.role
+res.json({success:false})
 
+})
+
+router.get("/admin/check",(req,res)=>{
+
+if(req.session && req.session.admin){
+res.json({logged:true})
+}else{
+res.json({logged:false})
+}
+
+})
+
+router.post("/admin/logout",(req,res)=>{
+
+req.session.destroy(()=>{
 res.json({success:true})
-
 })
 
 })
 
-module.exports =router
+module.exports = router

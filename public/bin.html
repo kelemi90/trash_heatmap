@@ -1,46 +1,226 @@
-<h2>Empty Trash Bin</h2>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Trash Bin Logger</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body{
+                font-family: -apple-ssystem,BlinkMacSystemFont,"Segoe UI",Roboto;
+                background: #f2f4f8;
+                margin:0;
+                padding:0;
+                display:flex;
+                justify-content:center;
+                align-items:center;
+                height:100vh;
+            }
+            .card{
+                background:white;
+                padding:30px;
+                border-radius:16px;
+                box-shadow:0 10px 30px rgba(0,0,0,0.15);
+                width:90%;
+                max-width:420px;
+                text-align:center;
+            }
 
-<input id="user" placeholder="username">
+            h1{
+                margin-top:0;
+                font-size:26px;
+            }
 
-<button onclick="send()">Empty Bin</button>
-<script>
+            .bin-number{
+                font-size:40px;
+                font-weight:700;
+                margin:10px 0 20px 0;
+                color:#2c7be5;
+            }
 
+            input{
+                width:100%;
+                padding:14px;
+                font-size:18px;
+                border: radius 10px;
+                border:1px solid #ddd;
+                margin-bottom:15px;
+                box-sizing:border-box;
+            }
 
-const params = new URLSearchParams(window.location.search)
-const bin = params.get("bin")
+            button{
+                width:100%;
+                padding:16px;
+                font-size:18px;
+                font-weight:600;
+                border:none;
+                border-radius:10px;
+                background:#28a745;
+                color:white;
+                cursor:pointer;
+            }
 
-function send(){
-    const user = localStorage.getItem("user") || document.getElementById("user").value
+            button:active{
+                transform:scale(0.98);
+            }
 
-    fetch("/api/epmty",{
-        method:"POST",
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-            bin_id:bin,
-            user:user
-        })
-    })
-    .then(r=>r.json())
-    .then(data=>{
+            .message{
+                margin-top:20px;
+                font-size:18px;
+                font-weight:500;
+            }
 
-        alert(data.message)
-    })
-}
-// function send(){
-// 
-// const user = document.getElementById("user").value
-// 
-// fetch("/api/empty",{
-// method:"POST",
-// headers:{'Content-Type':'application/json'},
-// body:JSON.stringify({
-// bin_id:bin,
-// user:user
-// })
-// })
-// 
-// alert("Logged")
-// 
-// }
+            .success{
+                color:#28a745;
+            }
 
-</script>
+            .error{
+                color:#d9534f;
+            }
+
+            .dublicate{
+                color:#ff9800;
+            }
+
+            .footer{
+                margin-top:15px;
+                font-size:14px;
+                color:#888;
+            }
+
+        </style>
+    </head>
+
+    <body>
+        <div class="card">
+            <h1>Trash bin</h1>
+            <div id="binNumber" class="bin-number"></div>
+            <input id="username" placeholder="Enter your username">
+            <button onclick="resetUser()" style="background:#6c757d;margin-bottom:10px;">
+                Change User
+            </button>
+            <button onclick="submitLog()">Log Empty</button>
+            <div id="message" class="message"></div>
+            <div class="footer">
+                Trash Heatmap System
+            </div>
+        </div>
+
+        <script>
+
+            const urlParams = new URLSearchParams(window.location.search)
+            const binId = urlParams.get("bin")
+
+            document.getElementById("binNumber").innerText = "Bin #" + binId
+
+            const usernameInput = document.getElementById("username")
+
+            /* load saved username */
+
+            const savedUser = localStorage.getItem("trash_username")
+
+            if(savedUser){
+                usernameInput.value = savedUser
+            }
+
+            /* AUTO LOG WHEN PAGE OPENS */
+
+            window.addEventListener("load", () => {
+
+            if(savedUser){
+                logBin(savedUser)
+            }
+
+            })
+
+            /* manual button */
+
+            function submitLog(){
+
+                const username = usernameInput.value.trim()
+
+                if(!username){
+                    showMessage("Enter username first","error")
+                    return
+                }
+
+                localStorage.setItem("trash_username",username)
+
+                logBin(username)
+
+            }
+
+            /* logging function */
+
+            async function logBin(username){
+
+                try{
+
+                    const res = await fetch("/api/log",{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({
+                            username:username,
+                            bin_id:binId
+                })
+            })
+
+            const data = await res.json()
+
+            if(data.success){
+                navigator.vibrate?.(100)
+                showMessage("✔ Bin logged","success")
+            }
+
+            else if(data.duplicate){
+                showMessage(
+                    "⚠ Bin already logged, Wait "+data.seconds_remainig+" seconds",
+                    "dublicate"
+                )
+            }
+
+            else if(data.invalid_user){
+                showMessage(
+                    "❌ Username not approved",
+                    "error"
+                )
+            }
+
+            else{
+                showMessage("Error logging","error")
+            }
+
+            }catch(err){
+
+                showMessage("Server error","error")
+
+            }
+
+            }
+
+            /* UI message */
+
+            function showMessage(text,type){
+
+                const msg = document.getElementById("message")
+                msg.className="message "+type
+                msg.innerText=text
+
+                setTimeout(()=>{
+                    msg.innerText=""
+                },4000)
+
+            }
+
+            /* reset user */
+
+            function resetUser(){
+
+                localStorage.removeItem("trash_username")
+                usernameInput.value=""
+                usernameInput.focus()
+
+            }
+
+        </script>
+    </body>
+</html>
