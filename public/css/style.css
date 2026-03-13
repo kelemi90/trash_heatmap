@@ -34,6 +34,11 @@ font-weight:bold;
 text-decoration:underline;
 }
 
+.nav-links a.active{
+	text-decoration:underline;
+	color:#ffd700;
+}
+
 .nav-right button{
 padding:6px 10px;
 cursor:pointer;

@@ -1,5 +1,8 @@
 # Trash Heatmap
 
+[![build status](https://img.shields.io/badge/build-local-brightgreen.svg)](https://github.com/kelemi90/trash_heatmap)
+[![tests](https://img.shields.io/badge/tests-none-lightgrey.svg)](#)
+
 Trash Heatmap is a lightweight event management system for tracking when trash bins are emptied during large indoor events.
 
 Workers scan a QR code attached to each trash bin and log when the bin has been emptied. The system collects this data and generates insights such as:
@@ -57,195 +60,146 @@ password: buildcat
 
 ### Drag & Drop Bin Placement
 
-Bins can be positioned on the event map using **drag & drop coordinates** instead of GPS.
+Saturday June 6 2026
+# Trash Heatmap
 
-This allows accurate indoor positioning.
+Trash Heatmap is a lightweight local web app for tracking when trash bins are emptied during an event. Workers scan a QR code on a bin and the system records the empties. The data is used to build heatmaps, worker activity views, and simple reports to help optimize bin placement.
 
----
+This repo is intended to run on a local development machine or event laptop inside the venue network.
 
-### Heatmap Generation
+----
 
-The server can generate heatmaps showing:
+## What changed (recent edits)
 
-- which bins are emptied most frequently
-- which areas produce the most trash
+- Dashboard JavaScript moved from inline HTML into `public/js/dashboard.js`.
+- Heatmap overlay implemented using `heatmap.js` and aligned to the map image.
+- Admin protection: `bin_editor.html` and `qr_labels.html` are now protected server-side and redirect to `/admin_login.html` when the user is not logged in.
+- Client helper `public/js/site.js` exposes `markActiveNav()` and `adjustNavbarAuth()` (hides admin links for logged-out users and toggles Login/Logout UI).
+- New charts page `public/bin_times.html` (Chart.js) with CSV export of bins & logs and interactive filtering.
+- Server logging added: `logs/server.log` records requests and server errors.
 
-This helps plan **better bin placement for future events**.
+----
 
----
+## Features
 
-### Real-time Dashboard
+- QR code based bin logging (workers scan and log empties)
+- Heatmap visualization of bin usage
+- Live-ish dashboard with worker activity and top-used bins
+- Drag & drop bin placement editor (admin)
+- Protected admin pages (session login)
+- CSV export for bins and logs; Chart.js visualizations
 
-Admin dashboard can display:
+----
 
-- most active bins
-- most active workers
-- live emptying logs
+## Quickstart (development)
 
-Useful during the event.
-
----
-
-## System Architecture
-```mermaid
-flowchart TD
-Workers --> MobileBrowser
-MobileBrowser --> NodeServer
-NodeServer --> SQLiteDB
-SQLiteDB --> AdminPanel
-SQLiteDB --> Dashboard
-SQLiteDB --> Heatmap
-```
-
----
-
-# Technology Stack
-
-Backend
-
-- Node.js
-- Express
-- SQLite
-
-Frontend
-
-- HTML
-- CSS
-- JavaScript
-
-QR Code
-
-- QRCode.js
-
----
-
-# Installation
-
-Clone repository
+Clone and install:
 ```bash
 git clone https://github.com/kelemi90/trash_heatmap.git
 cd trash_heatmap
-```
-Install dependencies
-```npm install```
-
-Start Server
-```node server/server.js```
-
-Server will start on:
-```http://localhost:3001```
-
-and also show the **local network IP address**.
-Workers should use the **network address**.
-Example:
-```http://192.168.1.20:3001```
-
-
----
-
-## Project Structure
-```text
-trash_heatmap
-├── LICENSE
-├── README.md
-├── package-lock.json
-├── package.json
-├── database
-│   ├── trahs.db
-│   ├── .gitkeep
-├── public
-│   ├── admin.html
-│   ├── admin_login.html
-│   ├── bin.html
-│   ├── bin_editor.html
-│   ├── bin_times.html
-│   ├── components
-│   │   └── navbar.html
-│   ├── css
-│   │   └── style.css
-│   ├── dashboard.html
-│   ├── heatmap.html
-│   ├── js
-│   │   ├── bin_times.js
-│   │   ├── dashboard.js
-│   │   └── map.js
-│   ├── map
-│   │   └── pohjakartta.png
-│   ├── map.html
-│   ├── qr_generator.html
-│   ├── qr_labels.html
-│   ├── ranking.html
-│   ├── scanner.html
-│   └── status.html
-├── scripts
-│   ├── createAdmin.js
-│   └── createBins.js
-└── server
-    ├── db.js
-    ├── middleware
-    │   └── adminAuth.js
-    ├── routes
-    │   ├── auth.js
-    │   ├── bins.js
-    │   ├── logs.js
-    │   ├── qrLabels.js
-    │   └── users.js
-    └── server.js
+npm install
 ```
 
----
+Start the server:
+```bash
+node server/server.js
+```
 
-# Event Configuration
+The server listens on port 3001 by default. It logs the local network address on startup, for example `http://192.168.50.37:3001`.
 
-Event dates:
-Thursday June 4 2026
-Friday June 5 2026
-Saturday June 6 2026
-Sunday June 7 2026
+Open the dashboard in a browser:
+```
+http://localhost:3001/dashboard.html
+```
 
-Total bins:
-55 trash bins
+----
 
-Workers:
-~20 workers
+## Admin access
 
+There is a simple admin login flow used for the demo/dev setup. Default credentials used in this project:
 
----
+- username: `Buildcat`
+- password: `buildcat`
 
-# QR Label Generation
+Use `/admin_login.html` to sign in. Once signed in, the server will set a session and admin-only pages (`/admin.html`, `/bin_editor.html`, `/qr_labels.html`) become accessible.
 
-QR labels can be generated from:
-/qr_labels.html
+To check login status from client-side code the app uses `/api/admin/check`.
 
+----
 
-Features:
+## Important server-side endpoints (examples)
 
-- Generate all 55 bin labels
-- Print-ready layout
-- Automatic server IP detection
+- `GET /api/status` — returns the current list of bins and last-empty timestamps
+- `GET /api/heatmap` — returns heatmap points (x,y,value)
+- `GET /api/activity` — recent logs / worker activity
+- `GET /api/ranking` — empties per bin (for Top Used Bins)
+- `POST /api/admin/login` — admin login
+- `POST /api/admin/logout` — admin logout
 
----
+Use these endpoints from the frontend pages (dashboard, charts) — they are already wired into the client code.
 
-# Security
+----
 
-- Admin pages protected with session login
-- Workers must exist in the database to log bins
-- Duplicate logging protection
+## Logging
 
----
+Server requests and errors are written to `logs/server.log`. This helps triage crashes and unexpected errors during an event. Tail the file during testing:
 
-# Future Improvements
+```bash
+tail -f logs/server.log
+```
 
-Possible upgrades:
+----
 
-- live event dashboard
-- automatic heatmap visualization
-- worker performance statistics
-- bin overflow prediction
-- AI recommendations for next year's bin placement
+## Project structure (high level)
 
----
+```
+trash_heatmap/
+├─ public/               # static UI pages and client JS
+│  ├─ components/navbar.html
+│  ├─ js/site.js         # site helpers: logout, markActiveNav, adjustNavbarAuth
+│  ├─ js/dashboard.js    # dashboard logic (heatmap + markers)
+│  ├─ js/bin_times.js    # charts page
+│  └─ map/*
+├─ server/
+│  ├─ middleware/adminAuth.js
+│  ├─ routes/*.js        # API routes (auth, bins, logs, users, qrLabels)
+│  └─ server.js          # app entrypoint
+├─ database/             # sqlite DB file
+└─ README.md
+```
 
-# License
+----
 
-MIT License
+## Notes & next steps
+
+- The admin credentials are hard-coded for demo purposes. Move to a proper user table or environment-driven secrets for production.
+- The server uses a basic file logger; consider rotating logs or using a structured logger (winston/pino) for production.
+- Navbar link hiding is client-side only — server-side routes remain protected (so URLs aren't accessible without login).
+
+----
+
+## License
+
+MIT
+
+----
+
+## Troubleshooting (quick)
+
+- Problem: "Server not starting / port already in use"
+	- Cause: another process is listening on port 3001 or a previous server instance didn't exit.
+	- Fix: find and stop the process (e.g., `lsof -i :3001` then `kill <pid>`), or change port in `server/server.js` temporarily.
+
+- Problem: "Pages still visible when logged out"
+	- Cause: client-side navbar hiding is UX-only. The server already protects `admin.html`, `bin_editor.html` and `qr_labels.html` via middleware. Make sure you restarted the server after the change.
+	- Fix: Verify server routes by requesting the page directly (curl -I http://localhost:3001/bin_editor.html) — you should see a 302 redirect to `/admin_login.html` when unauthenticated.
+
+- Problem: "Heatmap misaligned on the map image"
+	- Cause: heatmap renderer was created before the map image finished loading, or the page has padding/margins that offset the image.
+	- Fix: Refresh the page; the code now waits for image load before creating the heatmap. If alignment still looks off, try adding `?debug=1` to the dashboard URL to display debug dots at heatmap points.
+
+- Problem: "Unable to generate QR codes / blank images"
+	- Cause: server dependency for QR generation may be missing or the QR endpoint returned an error.
+	- Fix: Check server logs (`tail -f logs/server.log`) for errors from `/api/qr/:id` and confirm `qrcode` package is installed. Restart server after installing missing deps.
+
+If you hit any other issues, tail `logs/server.log` for detailed request and error traces.

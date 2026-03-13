@@ -4,6 +4,8 @@
   "description": "Trash bin heatmap application for event use.",
   "main": "index.js",
   "scripts": {
+    "start": "node server/server.js",
+    "ci:smoke": "node scripts/ci-smoke.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

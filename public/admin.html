@@ -47,9 +47,15 @@ fetch("/components/navbar.html")
 .then(r=>r.text())
 .then(html=>{
 document.getElementById("navbar").innerHTML = html
+if(window.markActiveNav) window.markActiveNav()
+else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
+    if(window.adjustNavbarAuth) window.adjustNavbarAuth()
+    else setTimeout(()=>{ if(window.adjustNavbarAuth) window.adjustNavbarAuth() },200)
 })
 
 </script>
+
+<script src="/js/site.js"></script>
 
 <h1>Admin - Trash Heatmap</h1>
 
@@ -173,7 +179,8 @@ method:"POST",
 credentials:"same-origin"
 })
 
-window.location="/admin_login.html"
+// after logout send user to dashboard view
+window.location="/dashboard.html"
 
 }
 

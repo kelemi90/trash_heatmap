@@ -69,8 +69,14 @@ fetch("/components/navbar.html")
 .then(r=>r.text())
 .then(html=>{
 document.getElementById("navbar").innerHTML = html
+if(window.markActiveNav) window.markActiveNav()
+else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
+	if(window.adjustNavbarAuth) window.adjustNavbarAuth()
+	else setTimeout(()=>{ if(window.adjustNavbarAuth) window.adjustNavbarAuth() },200)
 })
 </script>
+
+<script src="/js/site.js"></script>
 
 <h2>Drag Trash Bins To Correct Locations</h2>
 

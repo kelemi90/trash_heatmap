@@ -24,7 +24,13 @@
 <script>
 fetch('/components/navbar.html')
   .then(r=>r.text())
-  .then(html=> document.getElementById('navbar').innerHTML = html)
+  .then(html=>{
+    document.getElementById('navbar').innerHTML = html
+    if(window.markActiveNav) window.markActiveNav()
+    else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
+    if(window.adjustNavbarAuth) window.adjustNavbarAuth()
+    else setTimeout(()=>{ if(window.adjustNavbarAuth) window.adjustNavbarAuth() },200)
+  })
 </script>
 
 <h2>Bins — Emptying Times</h2>
@@ -71,6 +77,7 @@ fetch('/components/navbar.html')
 <!-- Chart.js via CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="/js/bin_times.js"></script>
+<script src="/js/site.js"></script>
 <style>
   /* print-friendly layout */
   @media print {

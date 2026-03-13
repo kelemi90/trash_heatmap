@@ -57,11 +57,24 @@ window.addEventListener('resize', ()=>{
 
 let heatPoints = []
 let rankingMap = {}
+let isAdmin = false
+
+function checkAdmin(){
+  return fetch('/api/admin/check',{ credentials: 'same-origin' })
+    .then(r=>r.json())
+    .then(d=>{ isAdmin = !!d.logged }).catch(()=>{ isAdmin = false })
+}
 
 function fetchNavbar(){
   fetch('/components/navbar.html')
     .then(r=>r.text())
-    .then(html=>{ document.getElementById('navbar').innerHTML = html })
+    .then(html=>{
+      document.getElementById('navbar').innerHTML = html
+      if(window.markActiveNav) window.markActiveNav()
+      else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
+      if(window.adjustNavbarAuth) window.adjustNavbarAuth()
+      else setTimeout(()=>{ if(window.adjustNavbarAuth) window.adjustNavbarAuth() },200)
+    })
 }
 
 function formatTimestamp(ts){
@@ -216,7 +229,8 @@ function updateActivity(){
 
       data.forEach(a=>{
         let row = document.createElement('div')
-        row.innerText = `${a.username} -> Bin ${a.bin_id} (${a.timestamp})`
+        const user = isAdmin ? a.username : '*****'
+        row.innerText = `${user} -> Bin ${a.bin_id} (${a.timestamp})`
         div.appendChild(row)
       })
     })
@@ -242,8 +256,9 @@ function updateRanking(){
 }
 
 function refresh(){
-  // ensure ranking is loaded first so markers show empties
-  updateRanking()
+  // ensure we know admin status before rendering activity
+  checkAdmin()
+    .then(()=> updateRanking())
     .then(()=> Promise.all([
       updateHeatmap(),
       updateStatus(),
