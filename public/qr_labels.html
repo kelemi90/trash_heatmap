@@ -103,6 +103,18 @@ page-break-inside:avoid;
 
 <body>
 
+    <div id="navbar"></div>
+
+<script>
+
+fetch("/components/navbar.html")
+.then(r=>r.text())
+.then(html=>{
+document.getElementById("navbar").innerHTML = html
+})
+
+</script>
+
 <h1>QR Label Generator</h1>
 
 <div class="controls">

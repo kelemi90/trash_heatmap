@@ -1,101 +1,130 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Scan Trash Bin</title>
+<head>
 
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>Scan Trash Bin</title>
 
-        <script src="https://unpkg.com/html5-qrcode"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <style>
-            body{
-                font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
-                background:#f2f4f8;
-                display:flex;
-                justify-content:center;
-                align-items:center;
-                height:100vh;
-                margin:0;
-            }
+<script src="https://unpkg.com/html5-qrcode"></script>
 
-            .card{
-                background:white;
-                padding:20px;
-                border-radius:16px;
-                box-shadow:0 10px 30px rgba(0,0,0,0.15);
-                width:90%;
-                max-width:450px;
-                text-align:center;
-            }
+<style>
 
-            h1{
-                margin-top:0;
-            }
+body{
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
+background:#f2f4f8;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+margin:0;
+}
 
-            #reader{
-                margin-top:15px;
-            }
+.card{
+background:white;
+padding:20px;
+border-radius:16px;
+box-shadow:0 10px 30px rgba(0,0,0,0.15);
+width:90%;
+max-width:450px;
+text-align:center;
+}
 
-        </style>
-    </head>
+#reader{
+margin-top:15px;
+}
 
-    <body>
+</style>
 
-        <div class="card">
+</head>
 
-            <h1>Scan Trash Bin</h1>
+<body>
 
-            <button onclick="startScanner()" id="startBtn">
-            Start Scanner
-            </button>
+<div class="card">
 
-            <div id="reader"></div>
+<h1>Scan Trash Bin</h1>
 
-        </div>
+<div id="reader"></div>
 
-        <script>
-            const html5QrCode = new Html5qrcode("reader")
+<p>Point camera at bin QR code</p>
 
-            function startScanner(){
-                document.getElementById("startBtn").style.display="none"
-                Html5Qrcode.getCameras().then(devices => {
-                    if(!devices.length){
-                        alert("No camera found")
-                        return
-                    }
+</div>
 
-                    html5QrCode.start(
-                        devices[0].id,
-                        {
-                            fps:10,
-                            qrbox:250
-                        },
-                        onScanSuccess
-                    )
+<script>
 
-                }).catch(err=>{
-                    console.log(err)
-                    alert("Camera error")
-                })
-            }
-            function onScanSuccess(decodeText){
-                let binId=null
+let html5QrCode = new Html5Qrcode("reader")
 
-                if(decodedText.startsWith("bin:")){
-                    binId=decodedText.split(":")[1]
-                }
+function startScanner(){
 
-                if(decodedText.includes("bin=")){
-                    const url=new URL(decodedText)
-                    binId=url.searchParams.get("bin")
-                }
+Html5Qrcode.getCameras().then(devices=>{
 
-                if(binId){
-                    html5QrCode.stop()
-                    window.location.href="/bin.html?bin="+binId
-                }
-            }
-        </script>
-    </body>
+if(!devices.length){
+alert("No camera found")
+return
+}
+
+let cameraId = devices[0].id
+
+devices.forEach(d=>{
+if(d.label.toLowerCase().includes("back"))
+cameraId = d.id
+})
+
+html5QrCode.start(
+cameraId,
+{
+fps:10,
+qrbox:{width:250,height:250}
+},
+onScanSuccess
+)
+
+})
+
+}
+
+function onScanSuccess(decodedText){
+
+let binId = null
+
+if(decodedText.startsWith("bin:")){
+binId = decodedText.split(":")[1]
+}
+
+if(decodedText.includes("bin=")){
+try{
+const url = new URL(decodedText)
+binId = url.searchParams.get("bin")
+}catch(e){}
+}
+
+if(binId){
+
+/* vibration */
+if(navigator.vibrate){
+navigator.vibrate(200)
+}
+
+/* beep */
+const beep = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg")
+beep.play()
+
+html5QrCode.stop()
+
+setTimeout(()=>{
+window.location.href="/bin.html?bin="+binId
+},400)
+
+}
+
+}
+
+/* start automatically */
+
+startScanner()
+
+</script>
+
+</body>
 </html>

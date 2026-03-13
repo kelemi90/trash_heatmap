@@ -37,6 +37,18 @@ border-bottom:1px solid #eee;
 
 <body>
 
+<div id="navbar"></div>
+
+<script>
+
+fetch("/components/navbar.html")
+.then(r=>r.text())
+.then(html=>{
+document.getElementById("navbar").innerHTML = html
+})
+
+</script>
+
 <h1>Admin - Trash Heatmap</h1>
 
 <div class="panel">

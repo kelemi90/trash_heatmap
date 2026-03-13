@@ -11,19 +11,49 @@
 
 <style>
 
+#layout{
+display:flex;
+gap:20px;
+}
+
+#sidebar{
+width:250px;
+background:white;
+border:1px solid #ddd;
+padding:10px;
+height:600px;
+overflow:auto;
+}
+
+#binList div{
+padding:4px;
+border-bottom:1px solid #eee;
+font-size:13px;
+}
+
+.map-container{
+position:relative;
+}
+
+.map-container img{
+width:100%;
+display:block;
+}
+
 .marker{
 position:absolute;
-width:20px;
-height:20px;
+width:22px;
+height:22px;
 border-radius:50%;
 background:red;
-transform:translate(-50%,-50%);
-cursor:pointer;
 color:white;
-font-size:10px;
+font-size:11px;
 display:flex;
 align-items:center;
 justify-content:center;
+transform:translate(-50%,-50%);
+cursor:pointer;
+user-select:none;
 }
 
 </style>
@@ -32,51 +62,117 @@ justify-content:center;
 
 <body>
 
+<div id="navbar"></div>
+
+<script>
+fetch("/components/navbar.html")
+.then(r=>r.text())
+.then(html=>{
+document.getElementById("navbar").innerHTML = html
+})
+</script>
+
 <h2>Drag Trash Bins To Correct Locations</h2>
 
-<div class="map-container" id="map">
+<div id="layout">
 
+<div id="sidebar">
+<h3>Bin Coordinates</h3>
+<div id="binList"></div>
+</div>
+
+<div class="map-container" id="map">
 <img src="/map/pohjakartta.png">
+</div>
 
 </div>
 
 <script>
 
+let topIndex = 0
+
 const map = document.getElementById("map")
+const binList = document.getElementById("binList")
 
 let dragging = null
+let bins = []
+
+/* LOAD BINS */
 
 fetch("/api/bins")
 .then(r=>r.json())
-.then(bins=>{
-
-bins.forEach(b=>{
-
-createMarker(b)
-
+.then(data=>{
+bins = data.sort((a,b)=>a.id - b.id)
+bins.forEach(b=>createMarker(b))
+updateList()
 })
 
-})
+/* CREATE MARKER */
 
 function createMarker(bin){
 
 let marker = document.createElement("div")
-
 marker.className="marker"
-marker.innerText=bin.id
+marker.innerText = bin.id
+
+let x,y
+
+if(bin.x && bin.y){
 
 const screen = mapToScreen(bin.x,bin.y,map)
+x = screen.x
+y = screen.y
 
-marker.style.left = screen.x+"px"
-marker.style.top = screen.y+"px"
+}else{
+
+const markerSize = 22
+const binsPerRow = 10
+
+const col = topIndex % binsPerRow
+const row = Math.floor(topIndex / binsPerRow)
+
+
+const gap = 2
+
+x = col * (markerSize + gap) + markerSize
+y = row * (markerSize + gap) + markerSize
+
+topIndex++
+
+}
+
+marker.style.left = x+"px"
+marker.style.top = y+"px"
 
 marker.dataset.id = bin.id
 
-marker.addEventListener("mousedown",startDrag)
+marker.addEventListener("mousedown", startDrag)
+
+/* RIGHT CLICK DELETE */
+
+marker.addEventListener("contextmenu",e=>{
+e.preventDefault()
+
+if(!confirm("Delete bin?")) return
+
+fetch("/api/bin/delete",{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({id:bin.id})
+})
+
+marker.remove()
+
+bins = bins.filter(b=>b.id != bin.id)
+
+updateList()
+})
 
 map.appendChild(marker)
 
 }
+
+/* DRAGGING */
 
 function startDrag(e){
 
@@ -124,10 +220,75 @@ y:pos.y
 })
 })
 
+let bin = bins.find(b=>b.id == id)
+if(bin){
+bin.x = pos.x
+bin.y = pos.y
+}
+
+updateList()
+
 dragging = null
 
 document.removeEventListener("mousemove",drag)
 document.removeEventListener("mouseup",stopDrag)
+
+}
+
+/* CLICK MAP = CREATE BIN */
+
+map.addEventListener("click",e=>{
+
+if(e.target.classList.contains("marker")) return
+
+const rect = map.getBoundingClientRect()
+
+const screenX = e.clientX - rect.left
+const screenY = e.clientY - rect.top
+
+const pos = screenToMap(screenX,screenY,map)
+
+fetch("/api/bin/add",{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({
+x:pos.x,
+y:pos.y
+})
+})
+.then(r=>r.json())
+.then(newBin=>{
+
+bins.push(newBin)
+
+createMarker(newBin)
+
+updateList()
+
+})
+
+})
+
+/* UPDATE LEFT PANEL */
+
+function updateList(){
+
+binList.innerHTML=""
+
+bins
+.sort((a,b)=>a.id - b.id)
+.forEach(b=>{
+
+let row=document.createElement("div")
+
+row.innerText =
+"Bin "+b.id+
+" | X:"+Number(b.x).toFixed(2)+
+" Y:"+Number(b.y).toFixed(2)
+
+binList.appendChild(row)
+
+})
 
 }
 

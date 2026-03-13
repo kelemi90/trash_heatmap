@@ -96,25 +96,6 @@ SQLiteDB --> AdminPanel
 SQLiteDB --> Dashboard
 SQLiteDB --> Heatmap
 ```
-```text
-Workers
-│
-│ scan QR
-▼
-Mobile Browser
-│
-│ POST log
-▼
-Node.js Server
-│
-│ store data
-▼
-SQLite Database
-│
-├─ Admin panel
-├─ Dashboard
-└─ Heatmap generator
-```
 
 ---
 

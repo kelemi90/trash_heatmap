@@ -1,160 +1,245 @@
-<!DOCTYPE hmtl>
+<!DOCTYPE html>
 <html>
-    <head>
-        <title>Trash Control Dashboard</title>
+<head>
 
-        <link rel="stylesheet" href="/css/styles.css">
-        
-        <script src="/js/map.js"></script>
+<title>Trash Control Dashboard</title>
 
-        <script src="html://cdn.jsdelivr.net/npm/heatmapjs"></script>
+<link rel="stylesheet" href="/css/styles.css">
 
-        <style>
+<script src="/js/map.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/heatmapjs"></script>
 
-            #layout{
-                display:felx;
-                gap:30px;
-            }
+<style>
 
-            #left{
-                flex:2;
-            }
+#layout{
+display:flex;
+gap:30px;
+}
 
-            #right{
-                flex:1;
-            }
+#left{
+flex:2;
+}
 
-            #activity{
-                height:300px;
-                overflow:auto;
-                border:1px solid #ccc;
-                padding:10px;
-            }
+#right{
+flex:1;
+}
 
-            #ranking{
-                border:1px solid #ccc;
-                padding:10px;
-                margin-top:20px;
-            }
-        </style>
-    </head>
+#activity{
+height:300px;
+overflow:auto;
+border:1px solid #ccc;
+padding:10px;
+}
 
-    <bosy>
-        <h1>Event Trash Control Dashboard</h1>
+#ranking{
+border:1px solid #ccc;
+padding:10px;
+margin-top:20px;
+}
 
-        <div id="layout">
-            <div id="left">
-                <div class="map-container" id="map">
-                    <img src="/map/pohjakartta.png">
-                    <div id="heatLayer"
-                    style="position:absolute;top:0;left:0;width:100%;height:100%"></div>
-                </div>
-            </div>
-            <div id="right">
-                <h3>Worker Activity</h3>
-                <div id="activity"></div>
-                <h3>Top Used Bins</h3>
-                <div id="ranking"></div>
-            </div>
-        </div>
-        <script>
-            const map = document.getElementById("map")
+.map-container{
+position:relative;
+}
 
-            const heatmap = h337.create({
-                container: document.getElementById("heatLayer"),
-                radius:40
-            })
+.marker{
+position:absolute;
+width:14px;
+height:14px;
+border-radius:50%;
+transform:translate(-50%,-50%);
+}
 
-            function updateStatus(){
-                fetch("/api/status")
-                .then(r=>r.json())
-                .then(bins=>{
+.green{ background:#2ecc71 }
+.orange{ background:#f39c12 }
+.red{ background:#e74c3c }
 
-                    document.querySelectorAll(".marker").forEach(m=>m.remove())
+</style>
 
-                    bins.forEach(b=>{
-                        const screen = mapToScreen(b.x,b.y,map)
-                        let marker = document.createElement("div")
-                        marker.className="marker"
-                        marker.style.left = screen.x+"px"
-                        marker.style.top = screen.y+"px"
+</head>
 
-                        const minutes = (Date.now() - new Date(b.last)) / 60000
+<body>
 
-                        if(minutes > 90)
-                        marker.classList.add("red")
-                        else if(minutes > 45)
-                        marker.classList.add("orange")
-                        else
-                        marker.classList.add("green")
+<div id="navbar"></div>
 
-                        map.appendChild(marker)
-                    })
-                })
-            }
+<script>
 
-            function updateHeatmap(){
-                fetch("/api/heatmap")
-                .then(r=>r.json())
-                .then(data=>{
+fetch("/components/navbar.html")
+.then(r=>r.text())
+.then(html=>{
+document.getElementById("navbar").innerHTML = html
+})
 
-                    const points = data.map(p=>{
-                        const screen = mapToScreen(p.x,p.y,map)
-                        return {
-                            x:screen.x,
-                            y:screen.y,
-                            value:p.value
-                        }
-                    })
+</script>
 
-                    heatmap.setData({
-                        max:100,
-                        data:points
-                    })
-                })
-            }
+</nav>
 
-            function updateActivity(){
-                fetch("/api/activity")
-                .then(r=>r.json())
-                .then(data=>{
-                    const div = document.getElementById("activity")
-                    div.innerHTML=""
-                    data.forEach(a=>{
-                        let row = document.createElement("div")
-                        row.innerText = 
-                        a.user + " -> Bin " + a.bin_id + " (" + a.timestamp + ")"
-                        div.appendChild(row)
-                    })
-                })
-            }
+<h1>Event Trash Control Dashboard</h1>
 
-            function updateRanking(){
-                fetch("/api/ranking")
-                .then(r=>r.json())
-                .then(data=>{
-                    const div = document.getElementById("ranking")
-                    div.innerHTML=""
-                    data.slice(0,10).forEach(b=>{
-                        let row=document.createElement("div")
-                        row.innerText =
-                        " Bin "+b.bin_id+" : "+b.total+" empties"
-                        div.appendChild(row)
-                    })
-                })
-            }
+<div id="layout">
 
-            function refresh(){
-                updateStatus()
-                updateHeatmap()
-                updateActivity()
-                updateRanking()
+<div id="left">
 
-            }
+<div class="map-container" id="map">
 
-            refresh()
+<img src="/map/pohjakartta.png" style="width:100%">
 
-            setInterval(refresh,5000)
-        </script>
-    </body>
+<div id="heatLayer"
+style="position:absolute;top:0;left:0;width:100%;height:100%">
+</div>
+
+</div>
+
+</div>
+
+<div id="right">
+
+<h3>Worker Activity</h3>
+<div id="activity"></div>
+
+<h3>Top Used Bins</h3>
+<div id="ranking"></div>
+
+</div>
+
+</div>
+
+<script>
+
+const map = document.getElementById("map")
+
+const heatmap = h337.create({
+container: document.getElementById("heatLayer"),
+radius:40
+})
+
+function updateStatus(){
+
+fetch("/api/status")
+.then(r=>r.json())
+.then(bins=>{
+
+document.querySelectorAll(".marker").forEach(m=>m.remove())
+
+bins.forEach(b=>{
+
+const screen = mapToScreen(b.x,b.y,map)
+
+let marker = document.createElement("div")
+
+marker.className="marker"
+marker.style.left = screen.x+"px"
+marker.style.top = screen.y+"px"
+
+const minutes = (Date.now() - new Date(b.last)) / 60000
+
+if(minutes > 90)
+marker.classList.add("red")
+else if(minutes > 45)
+marker.classList.add("orange")
+else
+marker.classList.add("green")
+
+map.appendChild(marker)
+
+})
+
+})
+
+}
+
+function updateHeatmap(){
+
+fetch("/api/heatmap")
+.then(r=>r.json())
+.then(data=>{
+
+const points = data.map(p=>{
+const screen = mapToScreen(p.x,p.y,map)
+
+return {
+x:screen.x,
+y:screen.y,
+value:p.value
+}
+
+})
+
+heatmap.setData({
+max:100,
+data:points
+})
+
+})
+
+}
+
+function updateActivity(){
+
+fetch("/api/activity")
+.then(r=>r.json())
+.then(data=>{
+
+const div = document.getElementById("activity")
+div.innerHTML=""
+
+data.forEach(a=>{
+
+let row = document.createElement("div")
+
+row.innerText =
+a.user + " -> Bin " + a.bin_id + " (" + a.timestamp + ")"
+
+div.appendChild(row)
+
+})
+
+})
+
+}
+
+function updateRanking(){
+
+fetch("/api/ranking")
+.then(r=>r.json())
+.then(data=>{
+
+const div = document.getElementById("ranking")
+div.innerHTML=""
+
+data.slice(0,10).forEach(b=>{
+
+let row=document.createElement("div")
+
+row.innerText =
+"Bin "+b.bin_id+" : "+b.total+" empties"
+
+div.appendChild(row)
+
+})
+
+})
+
+}
+
+function refresh(){
+
+updateStatus()
+updateHeatmap()
+updateActivity()
+updateRanking()
+
+}
+
+refresh()
+
+setInterval(refresh,5000)
+
+async function logout(){
+await fetch("/api/admin/logout",{method:"POST"})
+window.location="/admin_login.html"
+}
+
+</script>
+
+</body>
 </html>
