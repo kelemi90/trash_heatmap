@@ -39,6 +39,8 @@ margin-top:20px;
 
 .map-container{
 position:relative;
+	/* keep the map away from the page edge */
+	margin-left:16px;
 }
 
 .map-container img{
@@ -49,12 +51,26 @@ position:relative;
 	z-index:1;
 }
 
+/* leave padding on left side for smaller screens */
+@media (max-width: 900px){
+  #layout{ padding-left: 16px; padding-right:16px }
+}
+
 .marker{
 position:absolute;
 width:14px;
 height:14px;
 border-radius:50%;
 transform:translate(-50%,-50%);
+}
+
+.hover-label{
+	background: rgba(0,0,0,0.75);
+	color: #fff;
+	padding: 3px 6px;
+	border-radius: 4px;
+	font-size: 12px;
+	pointer-events: none;
 }
 
 .green{ background:#2ecc71 }

@@ -130,10 +130,31 @@ function updateStatus(){
           // position near marker: compute marker's rect
           const rect = ev.currentTarget.getBoundingClientRect()
           showTooltip(txt, rect.right, rect.top)
+
+          // also create a small inline hover label showing only the bin id
+          try{
+            // remove existing label if any
+            if(ev.currentTarget._hoverLabel){ ev.currentTarget._hoverLabel.remove(); ev.currentTarget._hoverLabel = null }
+            const label = document.createElement('div')
+            label.className = 'hover-label'
+            label.innerText = `#${id}`
+            // position relative to marker layer using stored dataset client coords
+            const cx = Number(ev.currentTarget.dataset.clientX) || rect.left
+            const cy = Number(ev.currentTarget.dataset.clientY) || rect.top
+            label.style.position = 'absolute'
+            label.style.left = (cx + 12) + 'px'
+            label.style.top = (cy - 10) + 'px'
+            label.style.zIndex = 5
+            // attach to markerLayer if available
+            if(typeof markerLayer !== 'undefined' && markerLayer) markerLayer.appendChild(label)
+            else document.body.appendChild(label)
+            ev.currentTarget._hoverLabel = label
+          }catch(e){/* ignore */}
         })
 
-        marker.addEventListener('mouseleave', ()=>{
+        marker.addEventListener('mouseleave', (ev)=>{
           hideTooltip()
+          try{ if(ev.currentTarget._hoverLabel){ ev.currentTarget._hoverLabel.remove(); ev.currentTarget._hoverLabel = null } }catch(e){}
         })
 
         if(markerLayer) markerLayer.appendChild(marker)
