@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Bin Emptying Times</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/map.js"></script>
+  <style>
+    body{font-family:system-ui,Arial;margin:16px}
+    .wrap{display:flex;gap:20px}
+    .map-area{flex:2;position:relative}
+    .sidebar{width:320px}
+    .map-container{position:relative}
+    .marker{position:absolute;width:16px;height:16px;border-radius:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px}
+    .tooltip{position:fixed;display:none;pointer-events:none;background:rgba(0,0,0,0.8);color:#fff;padding:6px 8px;border-radius:4px;font-size:13px}
+    .list{max-height:80vh;overflow:auto;border:1px solid #ddd;padding:8px}
+    .bin-row{padding:6px;border-bottom:1px solid #f3f3f3}
+  </style>
+</head>
+<body>
+
+<div id="navbar"></div>
+
+<script>
+fetch('/components/navbar.html')
+  .then(r=>r.text())
+  .then(html=> document.getElementById('navbar').innerHTML = html)
+</script>
+
+<h2>Bins — Emptying Times</h2>
+
+<div class="wrap">
+
+  <div class="map-area">
+    <h3>Last empty (minutes ago)</h3>
+    <canvas id="chartLastEmpty" width="800" height="300"></canvas>
+
+    <h3 style="margin-top:18px">Empties per bin</h3>
+    <canvas id="chartEmpties" width="800" height="300"></canvas>
+  </div>
+
+  <div class="sidebar">
+    <h3>Bins (by last emptied)</h3>
+    <div id="legend" style="margin-bottom:8px">
+      <small><strong>Legend:</strong></small>
+      <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+        <div style="width:14px;height:14px;background:#2ecc71;border-radius:3px"></div><small> &nbsp; &lt; 60 min</small>
+        <div style="width:14px;height:14px;background:#f39c12;border-radius:3px;margin-left:6px"></div><small> &nbsp; 60–120 min</small>
+        <div style="width:14px;height:14px;background:#e74c3c;border-radius:3px;margin-left:6px"></div><small> &nbsp; &gt; 120 min</small>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+      <button id="downloadCsv">Download CSV</button>
+      <button id="downloadLogsCsv">Download Logs CSV</button>
+      <button id="clearFilter">Clear Filter</button>
+      <button id="printBtn">Print</button>
+      <small id="lastUpdated" style="color:#666"></small>
+    </div>
+    <div style="margin-bottom:8px"><small>Filter: <span id="currentFilter">(none)</span></small></div>
+
+    <div id="binsList" class="list"></div>
+    <h3 style="margin-top:12px">Recent Logs</h3>
+    <div id="logs" class="list"></div>
+  </div>
+
+</div>
+
+<div id="tooltip" class="tooltip"></div>
+
+<!-- Chart.js via CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/js/bin_times.js"></script>
+<style>
+  /* print-friendly layout */
+  @media print {
+    body { margin: 0; }
+    .wrap { display:block; }
+    .sidebar { display:block; width:100%; }
+    .map-area { width:100%; }
+    button { display:none }
+    .list { max-height: none }
+  }
+</style>
+</body>
+</html>

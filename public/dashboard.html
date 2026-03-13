@@ -4,7 +4,7 @@
 
 <title>Trash Control Dashboard</title>
 
-<link rel="stylesheet" href="/css/styles.css">
+<link rel="stylesheet" href="/css/style.css">
 
 <script src="/js/map.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heatmapjs"></script>
@@ -41,6 +41,14 @@ margin-top:20px;
 position:relative;
 }
 
+.map-container img{
+	display:block;
+	width:100%;
+	height:auto;
+	position:relative;
+	z-index:1;
+}
+
 .marker{
 position:absolute;
 width:14px;
@@ -60,18 +68,7 @@ transform:translate(-50%,-50%);
 <body>
 
 <div id="navbar"></div>
-
-<script>
-
-fetch("/components/navbar.html")
-.then(r=>r.text())
-.then(html=>{
-document.getElementById("navbar").innerHTML = html
-})
-
-</script>
-
-</nav>
+<div id="tooltip" style="position:absolute;display:none;pointer-events:none;padding:6px 8px;background:rgba(0,0,0,0.85);color:#fff;border-radius:4px;font-size:13px;z-index:1000"></div>
 
 <h1>Event Trash Control Dashboard</h1>
 
@@ -81,11 +78,14 @@ document.getElementById("navbar").innerHTML = html
 
 <div class="map-container" id="map">
 
-<img src="/map/pohjakartta.png" style="width:100%">
+<img src="/map/pohjakartta.png" style="width:100%" draggable="false">
 
 <div id="heatLayer"
-style="position:absolute;top:0;left:0;width:100%;height:100%">
+style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:auto;z-index:2">
 </div>
+
+<!-- marker layer sits above heatmap so markers are visible and interactive -->
+<div id="markerLayer" style="position:absolute;top:0;left:0;right:0;bottom:0;z-index:3;pointer-events:auto"></div>
 
 </div>
 
@@ -103,143 +103,7 @@ style="position:absolute;top:0;left:0;width:100%;height:100%">
 
 </div>
 
-<script>
-
-const map = document.getElementById("map")
-
-const heatmap = h337.create({
-container: document.getElementById("heatLayer"),
-radius:40
-})
-
-function updateStatus(){
-
-fetch("/api/status")
-.then(r=>r.json())
-.then(bins=>{
-
-document.querySelectorAll(".marker").forEach(m=>m.remove())
-
-bins.forEach(b=>{
-
-const screen = mapToScreen(b.x,b.y,map)
-
-let marker = document.createElement("div")
-
-marker.className="marker"
-marker.style.left = screen.x+"px"
-marker.style.top = screen.y+"px"
-
-const minutes = (Date.now() - new Date(b.last)) / 60000
-
-if(minutes > 90)
-marker.classList.add("red")
-else if(minutes > 45)
-marker.classList.add("orange")
-else
-marker.classList.add("green")
-
-map.appendChild(marker)
-
-})
-
-})
-
-}
-
-function updateHeatmap(){
-
-fetch("/api/heatmap")
-.then(r=>r.json())
-.then(data=>{
-
-const points = data.map(p=>{
-const screen = mapToScreen(p.x,p.y,map)
-
-return {
-x:screen.x,
-y:screen.y,
-value:p.value
-}
-
-})
-
-heatmap.setData({
-max:100,
-data:points
-})
-
-})
-
-}
-
-function updateActivity(){
-
-fetch("/api/activity")
-.then(r=>r.json())
-.then(data=>{
-
-const div = document.getElementById("activity")
-div.innerHTML=""
-
-data.forEach(a=>{
-
-let row = document.createElement("div")
-
-row.innerText =
-a.user + " -> Bin " + a.bin_id + " (" + a.timestamp + ")"
-
-div.appendChild(row)
-
-})
-
-})
-
-}
-
-function updateRanking(){
-
-fetch("/api/ranking")
-.then(r=>r.json())
-.then(data=>{
-
-const div = document.getElementById("ranking")
-div.innerHTML=""
-
-data.slice(0,10).forEach(b=>{
-
-let row=document.createElement("div")
-
-row.innerText =
-"Bin "+b.bin_id+" : "+b.total+" empties"
-
-div.appendChild(row)
-
-})
-
-})
-
-}
-
-function refresh(){
-
-updateStatus()
-updateHeatmap()
-updateActivity()
-updateRanking()
-
-}
-
-refresh()
-
-setInterval(refresh,5000)
-
-async function logout(){
-await fetch("/api/admin/logout",{method:"POST"})
-window.location="/admin_login.html"
-}
-
-</script>
+<script src="/js/dashboard.js"></script>
 
 </body>
 </html>

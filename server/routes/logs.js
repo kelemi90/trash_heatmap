@@ -2,6 +2,8 @@ const express = require("express")
 const router = express.Router()
 const sqlite3 = require("sqlite3").verbose()
 
+console.log("[routes/logs] loaded")
+
 const db = new sqlite3.Database("database/trash.db")
 
 const DUPLICATE_WINDOW_SECONDS = 120
@@ -118,6 +120,56 @@ return res.status(500).json({error:true})
 res.json(rows)
 
 })
+
+})
+
+/* -----------------------------
+   ACTIVITY (recent logs)      
+----------------------------- */
+
+router.get("/activity",(req,res)=>{
+
+	db.all(
+		`SELECT username, bin_id, timestamp
+		 FROM logs
+		 ORDER BY timestamp DESC
+		 LIMIT 100`,
+		(err,rows)=>{
+
+			if(err){
+				console.error(err)
+				return res.status(500).json({error:true})
+			}
+
+			res.json(rows)
+
+		}
+	)
+
+})
+
+/* -----------------------------
+   RANKING (most emptied bins)
+----------------------------- */
+
+router.get("/ranking",(req,res)=>{
+
+	db.all(
+		`SELECT bin_id, COUNT(*) as total
+		 FROM logs
+		 GROUP BY bin_id
+		 ORDER BY total DESC`,
+		(err,rows)=>{
+
+			if(err){
+				console.error(err)
+				return res.status(500).json({error:true})
+			}
+
+			res.json(rows)
+
+		}
+	)
 
 })
 
