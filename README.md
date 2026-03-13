@@ -87,6 +87,15 @@ Useful during the event.
 ---
 
 ## System Architecture
+```mermaid
+flowchart TD
+Workers --> MobileBrowser
+MobileBrowser --> NodeServer
+NodeServer --> SQLiteDB
+SQLiteDB --> AdminPanel
+SQLiteDB --> Dashboard
+SQLiteDB --> Heatmap
+```
 ```text
 Workers
 │
