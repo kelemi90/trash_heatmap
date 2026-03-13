@@ -146,39 +146,51 @@ Example:
 ## Project Structure
 ```text
 trash_heatmap
-│
-├─ server
-│ ├─ routes
-│ │ ├─ auth.js
-│ │ ├─ bins.js
-│ │ ├─ logs.js
-│ │ ├─ users.js
-│ │ └─ qrLabels.js
-│ │
-│ ├─ middleware
-│ │ └─ adminAuth.js
-│ │
-│ ├─ db.js
-│ └─ server.js
-│
-├─ public
-│ ├─ admin.html
-│ ├─ admin_login.html
-│ ├─ bin.html
-│ ├─ bin_editor.html
-│ ├─ scanner.html
-│ ├─ qr_labels.html
-│ └─ map
-│
-├─ scripts
-│ ├─ createAdmin.js
-│ └─ createBins.js
-│
-├─ database
-│ └─ trash.db
-│
-├─ .gitignore
-└─ README.md
+├── LICENSE
+├── README.md
+├── package-lock.json
+├── package.json
+├── database
+│   ├── trahs.db
+│   ├── .gitkeep
+├── public
+│   ├── admin.html
+│   ├── admin_login.html
+│   ├── bin.html
+│   ├── bin_editor.html
+│   ├── bin_times.html
+│   ├── components
+│   │   └── navbar.html
+│   ├── css
+│   │   └── style.css
+│   ├── dashboard.html
+│   ├── heatmap.html
+│   ├── js
+│   │   ├── bin_times.js
+│   │   ├── dashboard.js
+│   │   └── map.js
+│   ├── map
+│   │   └── pohjakartta.png
+│   ├── map.html
+│   ├── qr_generator.html
+│   ├── qr_labels.html
+│   ├── ranking.html
+│   ├── scanner.html
+│   └── status.html
+├── scripts
+│   ├── createAdmin.js
+│   └── createBins.js
+└── server
+    ├── db.js
+    ├── middleware
+    │   └── adminAuth.js
+    ├── routes
+    │   ├── auth.js
+    │   ├── bins.js
+    │   ├── logs.js
+    │   ├── qrLabels.js
+    │   └── users.js
+    └── server.js
 ```
 
 ---
