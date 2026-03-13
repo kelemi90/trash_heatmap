@@ -86,7 +86,8 @@ Useful during the event.
 
 ---
 
-# System Architecture
+## System Architecture
+```text
 Workers
 │
 │ scan QR
@@ -104,7 +105,7 @@ SQLite Database
 ├─ Admin panel
 ├─ Dashboard
 └─ Heatmap generator
-
+```
 
 ---
 
@@ -152,7 +153,8 @@ Example:
 
 ---
 
-# Project Structure
+## Project Structure
+```text
 trash_heatmap
 │
 ├─ server
@@ -187,6 +189,7 @@ trash_heatmap
 │
 ├─ .gitignore
 └─ README.md
+```
 
 ---
 
