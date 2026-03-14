@@ -40,7 +40,16 @@ marker.className = "marker"
 marker.style.left = screen.x+"px"
 marker.style.top = screen.y+"px"
 
-const minutes = (Date.now() - new Date(b.last)) / 60000
+function parseTimestamp(ts){
+	if(!ts) return null
+	const s = String(ts).trim()
+	if(/^\d{4}-\d{2}-\d{2}T/.test(s) || /Z$/.test(s)) return new Date(s)
+	if(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(s)) return new Date(s.replace(' ','T')+'Z')
+	return new Date(s)
+}
+
+const parsed = parseTimestamp(b.last)
+const minutes = parsed && !isNaN(parsed.getTime()) ? (Date.now() - parsed.getTime()) / 60000 : Infinity
 
 if(minutes > 90)
 marker.classList.add("red")

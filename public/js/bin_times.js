@@ -58,6 +58,17 @@ function parseTimestamp(ts){
   return new Date(s)
 }
 
+function formatLocal(ts){
+  const d = parseTimestamp(ts)
+  if(!d || isNaN(d.getTime())) return 'invalid'
+  // Format in Finland time (Europe/Helsinki)
+  try{
+    return d.toLocaleString('fi-FI', { timeZone: 'Europe/Helsinki' })
+  }catch(e){
+    return d.toLocaleString()
+  }
+}
+
 async function loadData(){
   const [statusRes, logsRes, rankingRes] = await Promise.all([
     fetch('/api/status'),
@@ -123,15 +134,16 @@ async function loadData(){
   ranking.forEach(r=>{ emptiesMap[r.bin_id] = r.total })
 
   bins.sort((a,b)=>{
-    const ta = a.last ? new Date(a.last).getTime() : 0
-    const tb = b.last ? new Date(b.last).getTime() : 0
+    const ta = a.last ? parseTimestamp(a.last).getTime() : 0
+    const tb = b.last ? parseTimestamp(b.last).getTime() : 0
     return tb - ta
   })
 
   bins.forEach(b=>{
     const row = document.createElement('div')
     row.className = 'bin-row'
-    row.innerHTML = `<strong>Bin ${b.id}</strong> — Last: ${b.last ? niceTimeAgo(b.last) : 'never'} — Empties: ${emptiesMap[b.id] || 0}`
+    const lastDisplay = b.last ? `${niceTimeAgo(b.last)} (${formatLocal(b.last)})` : 'never'
+    row.innerHTML = `<strong>Bin ${b.id}</strong> — Last: ${lastDisplay} — Empties: ${emptiesMap[b.id] || 0}`
   row.addEventListener('click', ()=>{
       // highlight the bar in chartLast
       const idx = bins.findIndex(x=>x.id===b.id)
@@ -240,7 +252,8 @@ function renderLogs(){
     const r = document.createElement('div')
     r.className = 'bin-row'
     const shownUser = isAdmin ? l.username : '*****'
-    r.innerText = `${l.timestamp} — ${shownUser} — Bin ${l.bin_id}`
+    const local = formatLocal(l.timestamp)
+    r.innerText = `${local} — ${shownUser} — Bin ${l.bin_id}`
     logsDiv.appendChild(r)
   })
 }
