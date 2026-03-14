@@ -45,11 +45,11 @@ invalid_user:true
 /* CHECK LAST BIN LOG */
 
 db.get(
-`SELECT timestamp FROM logs
-WHERE bin_id=?
+(`SELECT timestamp FROM logs
+WHERE bin_id=? AND username=?
 ORDER BY timestamp DESC
-LIMIT 1`,
-[bin_id],
+LIMIT 1`),
+[bin_id, username],
 (err,row)=>{
 
 if(err){

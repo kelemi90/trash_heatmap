@@ -173,8 +173,8 @@
 
             else if(data.duplicate){
                 showMessage(
-                    "⚠ Bin already logged, Wait "+data.seconds_remainig+" seconds",
-                    "dublicate"
+                    "⚠ Bin already logged — wait "+(data.seconds_remaining || 0)+"s",
+                    "duplicate"
                 )
             }
 
