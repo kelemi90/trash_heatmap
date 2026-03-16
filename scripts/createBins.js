@@ -1,6 +1,6 @@
 const db = require("../server/db")
 
-for(let i=1;i<=55;i++){
+for(let i=0;i<=55;i++){
 
 db.run(
 "INSERT OR IGNORE INTO bins(id,x,y) VALUES(?,?,?)",
@@ -9,4 +9,4 @@ db.run(
 
 }
 
-console.log("55 bins created")
+console.log("56 bins created")
