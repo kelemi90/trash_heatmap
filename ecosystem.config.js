@@ -16,7 +16,7 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 3001,
         // SESSION_SECRET should be provided via environment in production
-        SESSION_SECRET: process.env.SESSION_SECRET || 'KuMm!tus'
+        SESSION_SECRET: process.env.SESSION_SECRET || 'KuMm1tus'
       }
     }
   ]

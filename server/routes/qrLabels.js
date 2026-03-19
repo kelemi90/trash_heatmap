@@ -1,29 +1,18 @@
 const express = require("express")
 const router = express.Router()
 const QRCode = require("qrcode")
-const os = require("os")
 
-/* find current local IPv4 address */
-
-function getLocalIP(){
-    const nets = os.networkInterfaces()
-    for(const name of Object.keys(nets)){
-        for(const net of nets[name]){
-            if(net.family == "IPv4" && !net.internal){
-                return net.address
-            }
-        }
-    }
-    return "localhost"
-}
-const PORT = 3001
+// Prefer an explicit public site URL (set via env) so generated QR codes
+// point to the public domain instead of a local IP.
+// Example: SITE_URL="https://tyhjennys.dy.fi"
+const SITE_URL = process.env.SITE_URL || 'http://tyhjennys.dy.fi'
 
 router.get("/qr/:bin", async (req,res)=>{
 
 const bin = req.params.bin
-const ip = getLocalIP()
-
-const text = `http://${ip}:${PORT}/bin.html?bin=${bin}`
+// Build the public URL that the QR code should point to.
+// We keep it simple: SITE_URL should include protocol and optional port.
+const text = `${SITE_URL.replace(/\/+$/, '')}/bin.html?bin=${bin}`
 
 try{
     const qr = await QRCode.toDataURL(text)
