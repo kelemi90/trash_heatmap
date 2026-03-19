@@ -101,13 +101,24 @@
 
                     const canvas = document.createElement("canvas")
 
-                    // Generate QR onto the canvas
+                    // Generate QR onto the canvas. If the library call fails, fetch the image data from the API.
                     try{
-                        QRCode.toCanvas(canvas, url, { width: 140 })
+                        if(typeof QRCode !== 'undefined' && QRCode.toCanvas){
+                            QRCode.toCanvas(canvas, url, { width: 140 })
+                        }else{
+                            throw new Error('QRCode.toCanvas not available')
+                        }
                     }catch(e){
-                        // If the lib doesn't expose toCanvas, fallback to drawing an img via API
+                        // Fallback: call the API which returns JSON { qr: dataUrl }
                         const img = document.createElement('img')
-                        img.src = `${server.replace(/\/+$/,'')}/api/qr/${i}`
+                        fetch(`${server.replace(/\/+$/,'')}/api/qr/${i}`)
+                            .then(r=>r.json())
+                            .then(data=>{ img.src = data.qr })
+                            .catch(()=>{
+                                // as a last resort, try requesting raw PNG
+                                img.src = `${server.replace(/\/+$/,'')}/api/qr/${i}?raw=1`
+                            })
+
                         canvas.replaceWith(img)
                     }
 

@@ -16,11 +16,20 @@ const bin = req.params.bin
 const text = `${SITE_URL.replace(/\/+$/, '')}/bin.html?bin=${bin}`
 
 try{
+    // If the client specifically requests an image (raw) or accepts images, return PNG buffer
+    const wantsImage = req.query.raw || (req.headers.accept && req.headers.accept.indexOf('image') !== -1)
+
+    if(wantsImage){
+        const buf = await QRCode.toBuffer(text)
+        res.setHeader('Content-Type','image/png')
+        return res.send(buf)
+    }
+
     const qr = await QRCode.toDataURL(text)
 
     res.json({
-    bin:bin,
-    qr:qr
+        bin:bin,
+        qr:qr
     })
     }catch(err){
         console.error(err)
