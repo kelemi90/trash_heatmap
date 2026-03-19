@@ -53,7 +53,7 @@ function getLocalIP(){
 
 app.use(express.json())
 app.use(session({
-secret:"trashsecret",
+secret: process.env.SESSION_SECRET || 'KuMm1tus',
 resave:false,
 saveUninitialized:false,
 cookie:{
@@ -109,18 +109,31 @@ app.use((err, req, res, next) => {
 })
 
 /* -----------------------------
-   START SERVER
+     START SERVER
+     - support configurable bind address and public host/protocol via env
 ----------------------------- */
+
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001
+const BIND_ADDR = process.env.BIND_ADDR || '0.0.0.0'
+const PUBLIC_HOST = process.env.PUBLIC_HOST || 'tyhjennys.dy.fi'
+const PUBLIC_PROTOCOL = process.env.PUBLIC_PROTOCOL || 'https'
 
 const ip = getLocalIP()
 
-app.listen(3001,()=>{
+function formatPublicURL(){
+    // Omit port for standard http/https ports
+    if ((PUBLIC_PROTOCOL === 'https' && PORT === 443) || (PUBLIC_PROTOCOL === 'http' && PORT === 80)){
+        return `${PUBLIC_PROTOCOL}://${PUBLIC_HOST}`
+    }
+    return `${PUBLIC_PROTOCOL}://${PUBLIC_HOST}:${PORT}`
+}
 
-    logger.info('\n')
-    logger.info('🚀 Trash Heatmap Server Running')
-    logger.info('\n')
-    logger.info(`Local:   http://localhost:3001`)
-    logger.info(`Network: http://${ip}:3001`)
-    logger.info('\n')
-
+app.listen(PORT, BIND_ADDR, ()=>{
+        logger.info('\n')
+        logger.info('🚀 Trash Heatmap Server Running')
+        logger.info('\n')
+        logger.info(`Local:   http://localhost:${PORT}`)
+        logger.info(`Network: http://${ip}:${PORT}`)
+        logger.info(`Public:  ${formatPublicURL()}`)
+        logger.info('\n')
 })
