@@ -5,7 +5,8 @@ const QRCode = require("qrcode")
 // Prefer an explicit public site URL (set via env) so generated QR codes
 // point to the public domain instead of a local IP.
 // Example: SITE_URL="https://tyhjennys.dy.fi"
-const SITE_URL = process.env.SITE_URL || 'http://tyhjennys.dy.fi'
+// Default to the public site (use HTTPS) so generated QR codes point to the live domain.
+const SITE_URL = process.env.SITE_URL || 'https://tyhjennys.dy.fi'
 
 router.get("/qr/:bin", async (req,res)=>{
 
