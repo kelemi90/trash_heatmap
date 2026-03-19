@@ -92,8 +92,10 @@ app.get("/qr_labels.html", adminAuth, (req,res)=>{
 // This uses app.use so it matches GET/HEAD/POST etc and will catch requests like
 // /qr/7 and /qr/7/ (if any).
 app.use('/qr', (req, res, next) => {
-    // preserve the rest of the path and query
-    const target = `/api${req.path}`
+    // Preserve the full original URL (path + query) but rewrite the leading
+    // `/qr` to `/api/qr` so `/qr/7?x=1` -> `/api/qr/7?x=1`.
+    // Using req.originalUrl keeps query string and any extra path parts.
+    const target = req.originalUrl.replace(/^\/qr\b/, '/api/qr')
     return res.redirect(307, target)
 })
 
