@@ -88,6 +88,13 @@ app.get("/qr_labels.html", adminAuth, (req,res)=>{
    PUBLIC FILES
 ----------------------------- */
 
+// Redirect legacy root QR path to API before static middleware, otherwise express.static
+// will intercept /qr/:bin and return a 404 HTML page for missing files.
+app.get('/qr/:bin', (req, res) => {
+    const bin = encodeURIComponent(req.params.bin)
+    res.redirect(307, `/api/qr/${bin}`)
+})
+
 app.use(express.static(path.join(__dirname,"../public")))
 
 /* -----------------------------
