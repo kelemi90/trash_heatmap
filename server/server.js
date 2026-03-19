@@ -121,12 +121,19 @@ const ip = getLocalIP()
 const SITE_URL = (process.env.SITE_URL || 'https://tyhjennys.dy.fi').replace(/\/+$/, '')
 
 app.listen(3001,()=>{
-
+    // Also print to stdout so foreground runs (node server/server.js)
+    // clearly show the server is listening. logger.info writes to logs.
     logger.info('\n')
     logger.info('🚀 Trash Heatmap Server Running')
     logger.info('\n')
     logger.info(`Local:   http://localhost:3001`)
     logger.info(`Site:    ${SITE_URL}`)
     logger.info('\n')
+
+    console.log('\n')
+    console.log('🚀 Trash Heatmap Server Running')
+    console.log(`Local:   http://localhost:3001`)
+    console.log(`Site:    ${SITE_URL}`)
+    console.log('\n')
 
 })
