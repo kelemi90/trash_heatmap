@@ -88,11 +88,13 @@ app.get("/qr_labels.html", adminAuth, (req,res)=>{
    PUBLIC FILES
 ----------------------------- */
 
-// Redirect legacy root QR path to API before static middleware, otherwise express.static
-// will intercept /qr/:bin and return a 404 HTML page for missing files.
-app.get('/qr/:bin', (req, res) => {
-    const bin = encodeURIComponent(req.params.bin)
-    res.redirect(307, `/api/qr/${bin}`)
+// Redirect any request under /qr to the API equivalent before static middleware
+// This uses app.use so it matches GET/HEAD/POST etc and will catch requests like
+// /qr/7 and /qr/7/ (if any).
+app.use('/qr', (req, res, next) => {
+    // preserve the rest of the path and query
+    const target = `/api${req.path}`
+    return res.redirect(307, target)
 })
 
 app.use(express.static(path.join(__dirname,"../public")))
@@ -106,15 +108,6 @@ app.use("/api", bins)
 app.use("/api", logs)
 app.use("/api", users)
 app.use("/api", qrLabels)
-// Also expose QR endpoints at the root path for convenience (keeps backwards compatibility)
-app.use('/', qrLabels)
-
-// Explicit redirect from legacy root QR path to API route. Some older callers hit /qr/:bin
-// directly; redirect them to the canonical /api/qr/:bin endpoint to ensure a JSON response.
-app.get('/qr/:bin', (req, res) => {
-    const bin = encodeURIComponent(req.params.bin)
-    res.redirect(307, `/api/qr/${bin}`)
-})
 
 // Error logging middleware (should be after routes)
 app.use((err, req, res, next) => {
