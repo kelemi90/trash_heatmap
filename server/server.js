@@ -53,15 +53,12 @@ function getLocalIP(){
 
 app.use(express.json())
 app.use(session({
-    // Use an environment-provided SESSION_SECRET in production when available.
-    // Fallback to a default for local/dev use.
-    secret: process.env.SESSION_SECRET || "KuMm1tus",
+secret:"trashsecret",
 resave:false,
 saveUninitialized:false,
-    cookie:{
-    maxAge:1000*60*60*2,
-    secure: process.env.NODE_ENV === 'production'
-    }
+cookie:{
+maxAge:1000*60*60*2
+}
 }))
 
 // Request logging middleware
@@ -117,23 +114,13 @@ app.use((err, req, res, next) => {
 
 const ip = getLocalIP()
 
-// Public site URL used for outward-facing messages and QR generation when configured.
-const SITE_URL = (process.env.SITE_URL || 'https://tyhjennys.dy.fi').replace(/\/+$/, '')
-
 app.listen(3001,()=>{
-    // Also print to stdout so foreground runs (node server/server.js)
-    // clearly show the server is listening. logger.info writes to logs.
+
     logger.info('\n')
     logger.info('🚀 Trash Heatmap Server Running')
     logger.info('\n')
     logger.info(`Local:   http://localhost:3001`)
-    logger.info(`Site:    ${SITE_URL}`)
+    logger.info(`Network: http://${ip}:3001`)
     logger.info('\n')
-
-    console.log('\n')
-    console.log('🚀 Trash Heatmap Server Running')
-    console.log(`Local:   http://localhost:3001`)
-    console.log(`Site:    ${SITE_URL}`)
-    console.log('\n')
 
 })

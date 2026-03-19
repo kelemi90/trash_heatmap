@@ -62,7 +62,7 @@
         <div id="controls">
             Server URL:
             <input id="server"
-            value="https://tyhjennys.dy.fi"
+            value="http://localhost:3001"
             style="width:250px">
 
             Number of bins:
@@ -70,59 +70,43 @@
             value="55"
             style="width:60px">
 
-            <button id="genBtn">Generate QR Codes</button>
+            <button onclick="generate()">Generate QR Codes</button>
             <button onclick="window.print()">Print Sheet</button>
         </div>
 
         <div id="labels"></div>
 
         <script>
-            // Simple client-side QR sheet generator using the included qrcode library.
             function generate(){
-                const server = document.getElementById("server").value.replace(/\/+$/,'')
-                const count = parseInt(document.getElementById("count").value) || 0
-
+                const server = document.getElementById("server").value
+                const count = parseInt(document.getElementById("count").value)
+                
                 const grid = document.getElementById("labels")
-                grid.innerHTML = ''
 
-                for(let i=1;i<=count;i++){
-                    const url = `${server}/bin.html?bin=${i}`
+                container.innerHTML=""
 
-                    const label = document.createElement("div")
+                for(let i=1;1<=count;i++){
+
+                    const url = server+"/bin.html?bin="+i
+
+                    let label = document.createElement("div")
                     label.className="label"
 
-                    const title = document.createElement("div")
+                    let title = document.createElement("div")
                     title.className="title"
-                    title.innerText=`BIN ${i}`
-
-                    const subtitle = document.createElement("div")
+                    title.innerText="BIN "+i
+                    
+                    let subtitle = document.createElement("div")
                     subtitle.className="subtitle"
                     subtitle.innerText="Trash Collection"
 
-                    const canvas = document.createElement("canvas")
+                    let canvas = document.createElement("canvas")
 
-                    // Generate QR onto the canvas. If the library call fails, fetch the image data from the API.
-                    try{
-                        if(typeof QRCode !== 'undefined' && QRCode.toCanvas){
-                            QRCode.toCanvas(canvas, url, { width: 140 })
-                        }else{
-                            throw new Error('QRCode.toCanvas not available')
-                        }
-                    }catch(e){
-                        // Fallback: call the API which returns JSON { qr: dataUrl }
-                        const img = document.createElement('img')
-                        fetch(`${server.replace(/\/+$/,'')}/api/qr/${i}`)
-                            .then(r=>r.json())
-                            .then(data=>{ img.src = data.qr })
-                            .catch(()=>{
-                                // as a last resort, try requesting raw PNG
-                                img.src = `${server.replace(/\/+$/,'')}/api/qr/${i}?raw=1`
-                            })
+                    QECode,toCanvas(canvas,url,{
+                        width:140
+                    })
 
-                        canvas.replaceWith(img)
-                    }
-
-                    const scan = document.createElement("div")
+                    let scan = document.createElement("div")
                     scan.className="scan"
                     scan.innerText="Scan when emptied"
 
@@ -131,11 +115,10 @@
                     label.appendChild(canvas)
                     label.appendChild(scan)
 
-                    grid.appendChild(label)
+                    container.appendChild(label)
+
                 }
             }
-
-            document.getElementById('genBtn').addEventListener('click', generate)
         </script>
     </body>
 </html>

@@ -114,54 +114,6 @@ http://localhost:3001/dashboard.html
 
 ----
 
-## Deployment (production)
-
-This project can be run behind nginx with a process manager (pm2) in production. Key points for deploying QR codes and the app:
-
-- SITE_URL: set the public URL the application will use when generating QR codes. Example:
-
-```bash
-export SITE_URL="https://tyhjennys.dy.fi"
-```
-
-- Using pm2 (recommended):
-
-```bash
-# from the project root on the server
-git pull origin main
-npm ci --production
-# quick update using current shell env
-export SITE_URL="https://tyhjennys.dy.fi"
-pm2 restart trash_heatmap --update-env
-
-# or reload using the ecosystem file (reads env_production)
-pm2 reload ecosystem.config.js --env production
-```
-
-- Ensure any sensitive files (for example `.env`) are moved out of `public/` so they are not served by nginx:
-
-```bash
-mv public/.env ./.env
-chmod 600 ./.env
-```
-
-- Nginx: serve `public/` as the web root and proxy `/api/` to the Node server (3001). See `/etc/nginx/sites-available/trash_heatmap` for a recommended site file. After editing nginx config:
-
-```bash
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-- Once HTTP is stable, obtain TLS with Certbot:
-
-```bash
-sudo certbot --nginx -d tyhjennys.dy.fi -d www.tyhjennys.dy.fi
-```
-
-After deployment, the QR generator uses `SITE_URL` to build URLs embedded in QR codes (e.g. `https://tyhjennys.dy.fi/bin.html?bin=42`). Set `SITE_URL` to `https://tyhjennys.dy.fi` to produce secure links.
-
-----
-
 ## Admin access
 
 There is a simple admin login flow used for the demo/dev setup. Default credentials used in this project:

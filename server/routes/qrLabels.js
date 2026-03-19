@@ -1,35 +1,36 @@
 const express = require("express")
 const router = express.Router()
 const QRCode = require("qrcode")
+const os = require("os")
 
-// Prefer an explicit public site URL (set via env) so generated QR codes
-// point to the public domain instead of a local IP.
-// Example: SITE_URL="https://tyhjennys.dy.fi"
-// Default to the public site (use HTTPS) so generated QR codes point to the live domain.
-const SITE_URL = process.env.SITE_URL || 'https://tyhjennys.dy.fi'
+/* find current local IPv4 address */
+
+function getLocalIP(){
+    const nets = os.networkInterfaces()
+    for(const name of Object.keys(nets)){
+        for(const net of nets[name]){
+            if(net.family == "IPv4" && !net.internal){
+                return net.address
+            }
+        }
+    }
+    return "localhost"
+}
+const PORT = 3001
 
 router.get("/qr/:bin", async (req,res)=>{
 
 const bin = req.params.bin
-// Build the public URL that the QR code should point to.
-// We keep it simple: SITE_URL should include protocol and optional port.
-const text = `${SITE_URL.replace(/\/+$/, '')}/bin.html?bin=${bin}`
+const ip = getLocalIP()
+
+const text = `http://${ip}:${PORT}/bin.html?bin=${bin}`
 
 try{
-    // If the client specifically requests an image (raw) or accepts images, return PNG buffer
-    const wantsImage = req.query.raw || (req.headers.accept && req.headers.accept.indexOf('image') !== -1)
-
-    if(wantsImage){
-        const buf = await QRCode.toBuffer(text)
-        res.setHeader('Content-Type','image/png')
-        return res.send(buf)
-    }
-
     const qr = await QRCode.toDataURL(text)
 
     res.json({
-        bin:bin,
-        qr:qr
+    bin:bin,
+    qr:qr
     })
     }catch(err){
         console.error(err)

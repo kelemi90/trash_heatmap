@@ -17,9 +17,6 @@ module.exports = {
         PORT: 3001,
         // SESSION_SECRET should be provided via environment in production
         SESSION_SECRET: process.env.SESSION_SECRET || 'KuMm1tus'
-        // SITE_URL can be set here or via the environment to control
-        // the host used when generating QR codes. Example: "https://tyhjennys.dy.fi"
-        ,SITE_URL: process.env.SITE_URL || 'https://tyhjennys.dy.fi'
       }
     }
   ]
