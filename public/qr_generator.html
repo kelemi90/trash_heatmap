@@ -78,45 +78,56 @@
 
         <script>
             function generate(){
-                const server = document.getElementById("server").value
-                const count = parseInt(document.getElementById("count").value)
-                
+                // Read server URL and normalize (remove trailing slash)
+                let server = document.getElementById("server").value || ''
+                server = server.trim().replace(/\/+$/,'')
+
+                const count = parseInt(document.getElementById("count").value, 10) || 0
                 const grid = document.getElementById("labels")
 
-                container.innerHTML=""
+                // clear existing labels
+                grid.innerHTML = ""
 
-                for(let i=1;1<=count;i++){
-
-                    const url = server+"/bin.html?bin="+i
+                for(let i = 1; i <= count; i++){
+                    const url = server + "/bin.html?bin=" + i
 
                     let label = document.createElement("div")
-                    label.className="label"
+                    label.className = "label"
 
                     let title = document.createElement("div")
-                    title.className="title"
-                    title.innerText="BIN "+i
+                    title.className = "title"
+                    title.innerText = "BIN " + i
                     
                     let subtitle = document.createElement("div")
-                    subtitle.className="subtitle"
-                    subtitle.innerText="Trash Collection"
+                    subtitle.className = "subtitle"
+                    subtitle.innerText = "Trash Collection"
 
                     let canvas = document.createElement("canvas")
 
-                    QECode,toCanvas(canvas,url,{
-                        width:140
-                    })
+                    // QRCode is provided by the included CDN script
+                    if (typeof QRCode !== 'undefined' && QRCode.toCanvas) {
+                        QRCode.toCanvas(canvas, url, { width: 140 }).catch(function(err){
+                            console.error('QR generation failed for', url, err)
+                        })
+                    } else {
+                        // Fallback: render plain text URL if QR lib not available
+                        const txt = document.createElement('div')
+                        txt.style.fontSize = '10px'
+                        txt.style.wordBreak = 'break-all'
+                        txt.innerText = url
+                        label.appendChild(txt)
+                    }
 
                     let scan = document.createElement("div")
-                    scan.className="scan"
-                    scan.innerText="Scan when emptied"
+                    scan.className = "scan"
+                    scan.innerText = "Scan when emptied"
 
                     label.appendChild(title)
                     label.appendChild(subtitle)
                     label.appendChild(canvas)
                     label.appendChild(scan)
 
-                    container.appendChild(label)
-
+                    grid.appendChild(label)
                 }
             }
         </script>
