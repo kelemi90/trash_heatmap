@@ -58,9 +58,10 @@ app.use(session({
     secret: process.env.SESSION_SECRET || "KuMm1tus",
 resave:false,
 saveUninitialized:false,
-cookie:{
-maxAge:1000*60*60*2
-}
+    cookie:{
+    maxAge:1000*60*60*2,
+    secure: process.env.NODE_ENV === 'production'
+    }
 }))
 
 // Request logging middleware
