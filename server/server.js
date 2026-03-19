@@ -53,7 +53,9 @@ function getLocalIP(){
 
 app.use(express.json())
 app.use(session({
-secret:"trashsecret",
+    // Use an environment-provided SESSION_SECRET in production when available.
+    // Fallback to a default for local/dev use.
+    secret: process.env.SESSION_SECRET || "KuMm1tus",
 resave:false,
 saveUninitialized:false,
 cookie:{
