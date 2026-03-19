@@ -118,7 +118,7 @@ app.use((err, req, res, next) => {
 const ip = getLocalIP()
 
 // Public site URL used for outward-facing messages and QR generation when configured.
-const SITE_URL = (process.env.SITE_URL || 'https://tyhjennys.dy.fi').replace(/\/+$/'', '')
+const SITE_URL = (process.env.SITE_URL || 'https://tyhjennys.dy.fi').replace(/\/+$/, '')
 
 app.listen(3001,()=>{
 
