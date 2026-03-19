@@ -5,38 +5,23 @@ const os = require("os")
 
 /* find current local IPv4 address */
 
-function getLocalIP(){
-    const nets = os.networkInterfaces()
-    for(const name of Object.keys(nets)){
-        for(const net of nets[name]){
-            if(net.family == "IPv4" && !net.internal){
-                return net.address
-            }
-        }
-    }
-    return "localhost"
-}
-const PORT = 3001
+// Allow overriding the QR host and protocol via environment variables for flexibility
+const QR_HOST = process.env.QR_HOST || 'tyhjennys.dy.fi'
+const QR_PROTOCOL = process.env.QR_PROTOCOL || 'https'
 
-router.get("/qr/:bin", async (req,res)=>{
+router.get('/qr/:bin', async (req, res) => {
+    const bin = req.params.bin
 
-const bin = req.params.bin
-const ip = getLocalIP()
+    // Construct a canonical public URL for the bin page (used in printed QR labels)
+    const text = `${QR_PROTOCOL}://${QR_HOST}/bin.html?bin=${encodeURIComponent(bin)}`
 
-const text = `http://${ip}:${PORT}/bin.html?bin=${bin}`
-
-try{
-    const qr = await QRCode.toDataURL(text)
-
-    res.json({
-    bin:bin,
-    qr:qr
-    })
-    }catch(err){
+    try {
+        const qr = await QRCode.toDataURL(text)
+        res.json({ bin: bin, qr: qr, url: text })
+    } catch (err) {
         console.error(err)
-        res.status(500).json({error:true})
+        res.status(500).json({ error: true })
     }
-
 })
 
 module.exports = router

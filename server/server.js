@@ -99,6 +99,15 @@ app.use("/api", bins)
 app.use("/api", logs)
 app.use("/api", users)
 app.use("/api", qrLabels)
+// Also expose QR endpoints at the root path for convenience (keeps backwards compatibility)
+app.use('/', qrLabels)
+
+// Explicit redirect from legacy root QR path to API route. Some older callers hit /qr/:bin
+// directly; redirect them to the canonical /api/qr/:bin endpoint to ensure a JSON response.
+app.get('/qr/:bin', (req, res) => {
+    const bin = encodeURIComponent(req.params.bin)
+    res.redirect(307, `/api/qr/${bin}`)
+})
 
 // Error logging middleware (should be after routes)
 app.use((err, req, res, next) => {
