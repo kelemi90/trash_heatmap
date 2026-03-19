@@ -62,7 +62,7 @@
         <div id="controls">
             Server URL:
             <input id="server"
-            value="http://localhost:3001"
+            value="https://tyhjennys.dy.fi"
             style="width:250px">
 
             Number of bins:
@@ -70,43 +70,48 @@
             value="55"
             style="width:60px">
 
-            <button onclick="generate()">Generate QR Codes</button>
+            <button id="genBtn">Generate QR Codes</button>
             <button onclick="window.print()">Print Sheet</button>
         </div>
 
         <div id="labels"></div>
 
         <script>
+            // Simple client-side QR sheet generator using the included qrcode library.
             function generate(){
-                const server = document.getElementById("server").value
-                const count = parseInt(document.getElementById("count").value)
-                
+                const server = document.getElementById("server").value.replace(/\/+$/,'')
+                const count = parseInt(document.getElementById("count").value) || 0
+
                 const grid = document.getElementById("labels")
+                grid.innerHTML = ''
 
-                container.innerHTML=""
+                for(let i=1;i<=count;i++){
+                    const url = `${server}/bin.html?bin=${i}`
 
-                for(let i=1;1<=count;i++){
-
-                    const url = server+"/bin.html?bin="+i
-
-                    let label = document.createElement("div")
+                    const label = document.createElement("div")
                     label.className="label"
 
-                    let title = document.createElement("div")
+                    const title = document.createElement("div")
                     title.className="title"
-                    title.innerText="BIN "+i
-                    
-                    let subtitle = document.createElement("div")
+                    title.innerText=`BIN ${i}`
+
+                    const subtitle = document.createElement("div")
                     subtitle.className="subtitle"
                     subtitle.innerText="Trash Collection"
 
-                    let canvas = document.createElement("canvas")
+                    const canvas = document.createElement("canvas")
 
-                    QECode,toCanvas(canvas,url,{
-                        width:140
-                    })
+                    // Generate QR onto the canvas
+                    try{
+                        QRCode.toCanvas(canvas, url, { width: 140 })
+                    }catch(e){
+                        // If the lib doesn't expose toCanvas, fallback to drawing an img via API
+                        const img = document.createElement('img')
+                        img.src = `${server.replace(/\/+$/,'')}/api/qr/${i}`
+                        canvas.replaceWith(img)
+                    }
 
-                    let scan = document.createElement("div")
+                    const scan = document.createElement("div")
                     scan.className="scan"
                     scan.innerText="Scan when emptied"
 
@@ -115,10 +120,11 @@
                     label.appendChild(canvas)
                     label.appendChild(scan)
 
-                    container.appendChild(label)
-
+                    grid.appendChild(label)
                 }
             }
+
+            document.getElementById('genBtn').addEventListener('click', generate)
         </script>
     </body>
 </html>
