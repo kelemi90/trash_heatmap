@@ -176,6 +176,83 @@ trash_heatmap/
 - The server uses a basic file logger; consider rotating logs or using a structured logger (winston/pino) for production.
 - Navbar link hiding is client-side only — server-side routes remain protected (so URLs aren't accessible without login).
 
+## Running with PM2 (recommended for production/event hosts)
+
+This app is compatible with `pm2` — it runs the same Express process and routes when managed by pm2. A provided `ecosystem.config.js` already points at `server/server.js` and sets the working directory.
+
+Quick pm2 commands:
+
+```bash
+pm2 start ecosystem.config.js            # start (development env)
+pm2 start ecosystem.config.js --env production  # start with production env
+pm2 restart trash_heatmap                # restart after code changes
+pm2 logs trash_heatmap                    # view stdout/stderr logs
+pm2 save                                  # persist process list across reboots
+pm2 startup                                # generate systemd startup script
+```
+
+Notes when using pm2:
+- Ensure the user running pm2 has write permissions to `database/backups/` (used by the reset tool).
+- If you enable `watch` in pm2, add `ignore_watch: ['database/backups','logs','node_modules']` to avoid restarts when backups or logs are written.
+- Configure environment variables (see below) in `ecosystem.config.js` under `env_production` and start with `--env production`.
+
+## Important environment variables
+
+Set these in your shell or `ecosystem.config.js` when running under pm2:
+
+- `PORT` — listen port (default: 3001)
+- `SESSION_SECRET` — session cookie secret (avoid the default in production)
+- `PUBLIC_HOST` / `PUBLIC_PROTOCOL` — used when building absolute URLs (QR generation, logs)
+
+Example snippet (in `ecosystem.config.js`):
+
+```js
+env_production: {
+	NODE_ENV: 'production',
+	PORT: 3001,
+	SESSION_SECRET: process.env.SESSION_SECRET || 'KuMm1tus',
+	PUBLIC_HOST: 'tyhjennys.dy.fi',
+	PUBLIC_PROTOCOL: 'https'
+}
+```
+
+## Admin tool: Reset / Clear logs
+
+An admin-only HTTP endpoint lets you back up and clear bin logs safely. It is protected by the same admin session used for the admin pages.
+
+- Endpoint: `POST /api/admin/reset-logs`
+- Body (JSON): `{}` to clear all logs, or `{ "bin_id": 7 }` to clear only bin 7
+- Behavior: backs up selected logs to `database/backups/` as a timestamped JSON file, then deletes the rows and runs `VACUUM`.
+- Usage (example):
+
+```bash
+# login as admin (save cookies)
+curl -c admin_cookies.txt -H "Content-Type: application/json" \
+	-d '{"username":"Buildcat","password":"buildcat"}' \
+	-X POST http://127.0.0.1:3001/api/admin/login
+
+# clear all logs (admin session required)
+curl -b admin_cookies.txt -X POST -H "Content-Type: application/json" \
+	-d '{}' http://127.0.0.1:3001/api/admin/reset-logs -v
+```
+
+Backups are saved under `database/backups/` (created automatically). The endpoint returns a JSON response with `backup` path and `deleted` count when successful.
+
+## Username matching: case-insensitive logging
+
+The bin-logging API now accepts usernames case-insensitively. That means workers can enter `Kelmi`, `kelmi`, or `kElmi` and the server will match the registered user regardless of case and record the canonical username from the `users` table in logs. This prevents accidental duplicates and normalizes display in reports.
+
+If you prefer a different canonicalisation (for example always store lower-case usernames), consider normalizing usernames on insert in `server/routes/users.js`.
+
+## Logout behavior (client/server)
+
+Logout was hardened so browsers send session cookies and the server clears them reliably:
+
+- Client: `public/js/site.js` now includes `credentials: 'same-origin'` on logout requests so the session cookie is sent.
+- Server: `POST /api/admin/logout` destroys the session and clears the `connect.sid` cookie.
+
+When testing over HTTPS, ensure you access the site with the same hostname used in the certificate (or use `curl --resolve` to map the host to localhost for testing). Use an incognito/private browser window to avoid stale cookies when validating logout behavior.
+
 ----
 
 ## License
