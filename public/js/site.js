@@ -2,7 +2,7 @@
 
 window.logout = async function(){
   try{
-    await fetch('/api/admin/logout',{ method: 'POST' })
+    await fetch('/api/admin/logout',{ method: 'POST', credentials: 'same-origin' })
   }catch(e){
     console.warn('Logout request failed', e)
   }

@@ -29,8 +29,11 @@ res.json({logged:false})
 
 router.post("/admin/logout",(req,res)=>{
 
-req.session.destroy(()=>{
-res.json({success:true})
+req.session.destroy((err)=>{
+	// Clear session cookie in the browser to ensure logout on client side
+	try{ res.clearCookie('connect.sid') }catch(e){}
+	if(err) return res.status(500).json({success:false,error:String(err)})
+	res.json({success:true})
 })
 
 })
