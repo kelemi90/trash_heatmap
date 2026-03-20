@@ -92,6 +92,22 @@ transform:translate(-50%,-50%);
 
 <div id="left">
 
+<div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+	<label for="heatRange">Heat range:</label>
+	<select id="heatRange">
+		<option value="all">All time</option>
+		<option value="hour">Last hour</option>
+		<option value="day">Last 24 hours</option>
+		<option value="week">Last 7 days</option>
+	</select>
+
+	<label for="heatRadius">Radius:</label>
+	<input id="heatRadius" type="range" min="10" max="120" value="40">
+	<span id="heatRadiusVal">40</span> px
+
+	<button id="heatRefresh">Refresh</button>
+</div>
+
 <div class="map-container" id="map">
 
 <img src="/map/pohjakartta.png" style="width:100%" draggable="false">

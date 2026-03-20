@@ -23,18 +23,39 @@ res.json({success:true})
 
 })
 
+// Support optional time-range filtering via query parameter `range`
+// Accepted values: 'hour', 'day', 'week' (case-insensitive). If provided,
+// only logs newer than the specified window are counted.
 router.get("/heatmap",(req,res)=>{
 
-db.all(`
-SELECT bins.x,bins.y,COUNT(logs.id) as value
-FROM bins
-LEFT JOIN logs ON bins.id = logs.bin_id
-GROUP BY bins.id
-`,(err,rows)=>{
+	const range = (req.query && req.query.range) ? String(req.query.range).toLowerCase() : null
 
-res.json(rows)
+	let timeClause = ''
+	if(range === 'hour') timeClause = "datetime('now','-1 hour')"
+	else if(range === 'day' || range === '24h') timeClause = "datetime('now','-24 hours')"
+	else if(range === 'week') timeClause = "datetime('now','-7 days')"
 
-})
+	let sql
+	if(timeClause){
+		// Count only logs newer than timeClause using conditional aggregation so bins with zero still appear
+		sql = `SELECT bins.x,bins.y, COUNT(CASE WHEN logs.timestamp >= ${timeClause} THEN 1 END) as value
+			   FROM bins
+			   LEFT JOIN logs ON bins.id = logs.bin_id
+			   GROUP BY bins.id`
+	}else{
+		sql = `SELECT bins.x,bins.y, COUNT(logs.id) as value
+			   FROM bins
+			   LEFT JOIN logs ON bins.id = logs.bin_id
+			   GROUP BY bins.id`
+	}
+
+	db.all(sql, (err,rows)=>{
+		if(err){
+			console.error('heatmap query failed', err)
+			return res.status(500).json({ error: 'db_failed' })
+		}
+		res.json(rows)
+	})
 
 })
 

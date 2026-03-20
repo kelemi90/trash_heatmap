@@ -7,9 +7,21 @@ const tooltip = document.getElementById('tooltip')
 // heatmap instance (created after image load so sizing is correct)
 let heatmap = null
 
+// UI controls (may be null if controls not present)
+const heatRangeEl = document.getElementById('heatRange')
+const heatRadiusEl = document.getElementById('heatRadius')
+const heatRadiusVal = document.getElementById('heatRadiusVal')
+const heatRefreshBtn = document.getElementById('heatRefresh')
+
 function createHeatmap(){
   if(heatmap) return heatmap
-  heatmap = h337.create({ container: heatLayer, radius: 40 })
+  // determine radius from control when available
+  let radius = 40
+  try{
+    if(heatRadiusEl) radius = Math.max(10, Math.min(200, parseInt(heatRadiusEl.value,10) || 40))
+  }catch(e){}
+
+  heatmap = h337.create({ container: heatLayer, radius: radius })
   // ensure renderer dimensions match the container (heatmap.js internal API)
   try{
     const w = Math.max(1, heatLayer.clientWidth)
@@ -177,7 +189,16 @@ function updateStatus(){
 }
 
 function updateHeatmap(){
-  return fetch('/api/heatmap')
+  // include selected range when available
+  let url = '/api/heatmap'
+  try{
+    if(heatRangeEl && heatRangeEl.value && heatRangeEl.value !== 'all'){
+      const v = encodeURIComponent(heatRangeEl.value)
+      url += '?range=' + v
+    }
+  }catch(e){}
+
+  return fetch(url)
     .then(r=>r.json())
     .then(data=>{
       // ensure heatmap exists and is sized
@@ -219,6 +240,29 @@ function updateHeatmap(){
       }catch(e){/* ignore */}
     })
 }
+
+// wire control events if they exist
+try{
+  if(heatRadiusEl){
+    heatRadiusEl.addEventListener('input', ()=>{
+      if(heatRadiusVal) heatRadiusVal.innerText = heatRadiusEl.value
+      // recreate heatmap renderer with new radius
+      heatmap = null
+      createHeatmap()
+      updateHeatmap()
+    })
+    // initialize display value
+    if(heatRadiusVal) heatRadiusVal.innerText = heatRadiusEl.value
+  }
+
+  if(heatRefreshBtn){
+    heatRefreshBtn.addEventListener('click', ()=>{ refresh() })
+  }
+
+  if(heatRangeEl){
+    heatRangeEl.addEventListener('change', ()=>{ refresh() })
+  }
+}catch(e){/* ignore wiring errors */}
 
 function updateActivity(){
   return fetch('/api/activity')
