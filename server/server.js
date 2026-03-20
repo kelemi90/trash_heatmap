@@ -139,8 +139,7 @@ function formatPublicURL(){
     return `${PUBLIC_PROTOCOL}://${PUBLIC_HOST}:${PORT}`
 }
 
-if (require.main === module) {
-    app.listen(PORT, BIND_ADDR, ()=>{
+app.listen(PORT, BIND_ADDR, ()=>{
         logger.info('\n')
         logger.info('🚀 Trash Heatmap Server Running')
         logger.info('\n')
@@ -148,7 +147,4 @@ if (require.main === module) {
         logger.info(`Network: http://${ip}:${PORT}`)
         logger.info(`Public:  ${formatPublicURL()}`)
         logger.info('\n')
-    })
-}
-
-module.exports = app
+})
