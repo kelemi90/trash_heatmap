@@ -16,6 +16,7 @@ req.session.admin = true
 	return req.session.save((err)=>{
 		if(err) console.error('[auth/login] session.save error', err)
 		try{ console.log(`[auth/login] pid=${process.pid} sessionSaved sessionID=${req.sessionID}`) }catch(e){}
+			try{ console.log('[auth/login] Set-Cookie header before respond:', res.getHeader && res.getHeader('Set-Cookie')) }catch(e){}
 		return res.json({success:true})
 	})
 

@@ -79,7 +79,10 @@ const sessionOptions = {
     cookie:{
         maxAge:1000*60*60*2,
         httpOnly: true,
-        secure: (process.env.PUBLIC_PROTOCOL === 'https' || process.env.NODE_ENV === 'production'),
+        // Only set secure cookies when running in production AND PUBLIC_PROTOCOL is https.
+        // This prevents Secure cookies being set during local HTTP development which would
+        // cause browsers not to store the cookie and appear as an immediate logout.
+        secure: (process.env.NODE_ENV === 'production' && process.env.PUBLIC_PROTOCOL === 'https'),
         sameSite: 'lax'
     }
 }
@@ -96,6 +99,8 @@ if(RedisStore){
 }
 
 app.use(session(sessionOptions))
+
+try{ logger.info(`Session cookie secure=${Boolean(sessionOptions.cookie && sessionOptions.cookie.secure)}; NODE_ENV=${process.env.NODE_ENV}; PUBLIC_PROTOCOL=${process.env.PUBLIC_PROTOCOL}`) }catch(e){}
 
 // Request logging middleware
 app.use((req,res,next)=>{
