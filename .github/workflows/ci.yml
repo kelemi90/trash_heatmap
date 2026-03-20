@@ -42,7 +42,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           # Use Node 20 to satisfy dependencies that require Node >=20
-          node-version: 24
+          node-version: 20
       - name: Cache node modules
         uses: actions/cache@v4
         with:
