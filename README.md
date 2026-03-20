@@ -240,7 +240,7 @@ Backups are saved under `database/backups/` (created automatically). The endpoin
 
 ## Username matching: case-insensitive logging
 
-The bin-logging API now accepts usernames case-insensitively. That means workers can enter `Kelmi`, `kelmi`, or `kElmi` and the server will match the registered user regardless of case and record the canonical username from the `users` table in logs. This prevents accidental duplicates and normalizes display in reports.
+The bin-logging API now accepts usernames case-insensitively. That means workers can enter `User`, `user`, or `uSer` and the server will match the registered user regardless of case and record the canonical username from the `users` table in logs. This prevents accidental duplicates and normalizes display in reports.
 
 If you prefer a different canonicalisation (for example always store lower-case usernames), consider normalizing usernames on insert in `server/routes/users.js`.
 
