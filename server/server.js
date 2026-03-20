@@ -72,8 +72,7 @@ const redisClient = createClient({ url: redisUrl })
 redisClient.on('error', (err) => { try{ logger.error('Redis Client Error: ' + err) }catch(e){ console.error(e) } })
 redisClient.connect().catch((err)=>{ try{ logger.error('Failed to connect to Redis: ' + err) }catch(e){ console.error(e) } })
 
-app.use(session({
-    store: new RedisStore({ client: redisClient }),
+const sessionOptions = {
     secret: process.env.SESSION_SECRET || 'KuMm1tus',
     resave:false,
     saveUninitialized:false,
@@ -83,7 +82,20 @@ app.use(session({
         secure: (process.env.PUBLIC_PROTOCOL === 'https' || process.env.NODE_ENV === 'production'),
         sameSite: 'lax'
     }
-}))
+}
+
+if(RedisStore){
+    try{
+        sessionOptions.store = new RedisStore({ client: redisClient })
+    }catch(e){
+        try{ logger.error('Failed to initialize RedisStore: ' + e) }catch(_){}
+        // fall back to default MemoryStore (not ideal for production)
+    }
+} else {
+    try{ logger.warn('connect-redis module did not return a usable store; falling back to MemoryStore') }catch(e){}
+}
+
+app.use(session(sessionOptions))
 
 // Request logging middleware
 app.use((req,res,next)=>{
