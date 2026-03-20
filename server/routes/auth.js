@@ -11,7 +11,13 @@ if(username === "Buildcat" && password === "buildcat"){
 req.session.admin = true
 	// store admin username for audit logging
 	req.session.username = username
-return res.json({success:true})
+	// debug log session info and ensure session is saved before responding
+	try{ console.log(`[auth/login] pid=${process.pid} sessionID=${req.sessionID} sessionBefore=${JSON.stringify(req.session)}`) }catch(e){}
+	req.session.save((err)=>{
+		if(err) console.error('[auth/login] session.save error', err)
+		try{ console.log(`[auth/login] pid=${process.pid} sessionSaved sessionID=${req.sessionID}`) }catch(e){}
+		return res.json({success:true})
+	})
 
 }
 
