@@ -9,6 +9,8 @@ const password = req.body?.password
 if(username === "Buildcat" && password === "buildcat"){
 
 req.session.admin = true
+	// store admin username for audit logging
+	req.session.username = username
 return res.json({success:true})
 
 }
@@ -20,10 +22,28 @@ res.json({success:false})
 router.get("/admin/check",(req,res)=>{
 
 if(req.session && req.session.admin){
-res.json({logged:true})
+res.json({logged:true, username: req.session.username || null})
 }else{
 res.json({logged:false})
 }
+
+})
+
+
+// Set admin nickname in session (must be logged in as admin)
+router.post('/admin/set-nickname', (req, res) => {
+
+	if (!req.session || !req.session.admin) {
+		return res.status(401).json({ success: false, error: 'unauthorized' })
+	}
+
+	const nickname = req.body && req.body.nickname ? String(req.body.nickname).trim() : ''
+
+	if (!nickname) return res.status(400).json({ success: false, error: 'nickname_required' })
+	if (nickname.toLowerCase() === 'buildcat') return res.status(400).json({ success: false, error: 'nickname_invalid', message: 'Nickname cannot be Buildcat' })
+
+	req.session.username = nickname
+	return res.json({ success: true, username: nickname })
 
 })
 

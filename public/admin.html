@@ -61,14 +61,33 @@ else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
 
 <div class="panel">
 <h2>Add User</h2>
-<input id="username" placeholder="username">
-<button onclick="addUser()">Add</button>
-<button onclick="logout()">Logout</button>
+<div style="display:flex;gap:8px;align-items:center;">
+    <input id="username" placeholder="username">
+    <button onclick="addUser()">Add</button>
+    <button onclick="logout()">Logout</button>
+</div>
+<div style="margin-top:10px">
+    <label for="nicknameInput">Your nickname (required for resets):</label>
+    <input id="nicknameInput" placeholder="enter nickname" style="margin-left:8px;padding:6px;">
+    <button onclick="setNickname()">Set nickname</button>
+    <div id="currentNickname" style="display:inline-block;margin-left:12px;color:#333"></div>
+</div>
 </div>
 
 <div class="panel">
 <h2>Workers</h2>
 <div id="users"></div>
+</div>
+
+<div class="panel">
+<h2>Logs</h2>
+<div style="margin-bottom:8px">
+    <label for="resetBinId">Bin ID (optional): </label>
+    <input id="resetBinId" placeholder="leave empty to clear all" style="width:120px;padding:6px;margin-left:6px">
+    <button onclick="resetLogs()" style="margin-left:10px">Reset Logs</button>
+    <small style="display:block;color:#666;margin-top:6px">Backups are stored in <code>database/backups/</code> before deletion.</small>
+</div>
+<div id="resetResult" style="padding:8px;margin-top:8px;display:none;border-radius:6px"></div>
 </div>
 
 <script>
@@ -88,7 +107,52 @@ window.location="/admin_login.html"
 return false
 }
 
-return true
+    // show current nickname if provided
+    if(data.username){
+        const el = document.getElementById('currentNickname')
+        if(el) el.innerText = `Nickname: ${data.username}`
+    }
+
+    return true
+
+}
+
+async function setNickname(){
+
+    const nick = document.getElementById('nicknameInput').value.trim()
+    if(!nick){
+        alert('Enter a nickname')
+        return
+    }
+
+    if(nick.toLowerCase() === 'buildcat'){
+        alert('Nickname cannot be \"Buildcat\"')
+        return
+    }
+
+    try{
+        const res = await fetch('/api/admin/set-nickname',{
+            method:'POST',
+            credentials:'same-origin',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ nickname: nick })
+        })
+
+        const data = await res.json()
+        if(res.ok && data.success){
+            document.getElementById('currentNickname').innerText = `Nickname: ${data.username}`
+            document.getElementById('nicknameInput').value = ''
+            // clear any previous result
+            const out = document.getElementById('resetResult')
+            out.style.display = 'none'
+        }else{
+            alert('Failed to set nickname: ' + (data && data.error ? data.error : JSON.stringify(data)))
+        }
+
+    }catch(e){
+        console.error(e)
+        alert('Failed to set nickname: ' + e)
+    }
 
 }
 
@@ -135,7 +199,7 @@ async function addUser(){
         headers:{
             "Content-Type":"application/json"
         },
-        credential:"same-origin",
+        credentials:"same-origin",
         body:JSON.stringify({username})
     })
 
@@ -182,6 +246,55 @@ credentials:"same-origin"
 // after logout send user to dashboard view
 window.location="/dashboard.html"
 
+}
+
+/* RESET LOGS (admin) */
+async function resetLogs(){
+    const binInput = document.getElementById('resetBinId').value.trim()
+    const bin_id = binInput ? parseInt(binInput,10) : null
+
+    const confirmMsg = bin_id ? `Are you sure you want to delete all logs for bin ${bin_id}? This will create a backup first.` : 'Are you sure you want to delete ALL logs? This will create a backup first.'
+    if(!confirm(confirmMsg)) return
+
+    const body = bin_id ? { bin_id } : {}
+
+    try{
+        const res = await fetch('/api/admin/reset-logs', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+
+        if(res.status === 401){
+            // unauthorized - redirect to login
+            document.getElementById('resetResult').style.display = 'block'
+            document.getElementById('resetResult').style.background = '#ffecec'
+            document.getElementById('resetResult').style.color = '#a33'
+            document.getElementById('resetResult').innerText = 'Unauthorized — please login as admin'
+            return window.location = '/admin_login.html'
+        }
+
+        const data = await res.json()
+        const out = document.getElementById('resetResult')
+        out.style.display = 'block'
+        if(data && data.success){
+            out.style.background = '#e6ffed'
+            out.style.color = '#0a640a'
+            out.innerHTML = `Logs reset OK.<br><strong>Backup:</strong> ${data.backup}<br><strong>Deleted:</strong> ${data.deleted || 'unknown'}`
+        }else{
+            out.style.background = '#ffecec'
+            out.style.color = '#a33'
+            out.innerText = 'Reset failed: ' + (data && data.error ? data.error : JSON.stringify(data))
+        }
+    }catch(e){
+        console.error(e)
+        const out = document.getElementById('resetResult')
+        out.style.display = 'block'
+        out.style.background = '#ffecec'
+        out.style.color = '#a33'
+        out.innerText = 'Reset failed: ' + e
+    }
 }
 
 </script>

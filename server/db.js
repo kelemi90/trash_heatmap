@@ -27,6 +27,16 @@ bin_id INTEGER,
 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 )`)
 
+db.run(`
+CREATE TABLE IF NOT EXISTS audit_logs(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+admin_username TEXT,
+action TEXT,
+details TEXT,
+timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+)
+`)
+
 })
 
 module.exports = db

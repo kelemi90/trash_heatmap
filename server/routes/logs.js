@@ -192,6 +192,11 @@ router.post('/admin/reset-logs', adminAuth, (req, res) => {
 
 	const bin_id = req.body && req.body.bin_id ? req.body.bin_id : null
 
+	// Require a non-default nickname for audit purposes
+	if(!req.session || !req.session.username || req.session.username.toLowerCase() === 'buildcat'){
+		return res.status(400).json({ success:false, error:'nickname_required', message:'Please set a nickname (not Buildcat) before resetting logs.' })
+	}
+
 	// ensure backups dir
 	const backupsDir = path.join(__dirname, '..', '..', 'database', 'backups')
 	try{ fs.mkdirSync(backupsDir, { recursive: true }) }catch(e){}
@@ -228,7 +233,24 @@ router.post('/admin/reset-logs', adminAuth, (req, res) => {
 			// run VACUUM to reclaim space (best-effort)
 			db.run('VACUUM', [], ()=>{})
 
-			res.json({ success:true, deleted: this && this.changes ? this.changes : null, backup: backupPath })
+			const deletedCount = this && this.changes ? this.changes : null
+
+			// Insert audit log entry recording who performed the reset
+			try{
+				const adminUsername = (req && req.session && req.session.username) ? req.session.username : (req && req.session && req.session.admin ? 'admin' : 'unknown')
+				const details = JSON.stringify({ bin_id: bin_id, deleted: deletedCount, backup: backupPath })
+				db.run(`INSERT INTO audit_logs (admin_username, action, details) VALUES (?,?,?)`, [adminUsername, 'reset-logs', details], function(aerr){
+					if(aerr){
+						console.error('Failed to write audit log', aerr)
+						// continue even if audit write fails
+					}
+					// respond to client after attempting audit insert
+					res.json({ success:true, deleted: deletedCount, backup: backupPath })
+				})
+			}catch(e){
+				console.error('Audit logging error', e)
+				res.json({ success:true, deleted: deletedCount, backup: backupPath })
+			}
 		})
 
 	})
