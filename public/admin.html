@@ -21,6 +21,15 @@ padding:20px;
 border-radius:10px;
 margin-bottom:20px;
 }
+/* Prominent action button for destructive admin actions */
+.btn-danger{
+    background:#c62828;
+    color:#fff;
+    border:none;
+    padding:8px 12px;
+    border-radius:6px;
+    cursor:pointer;
+}
 button{
 padding:8px 12px;
 margin-left:10px;
@@ -79,12 +88,12 @@ else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
 <div id="users"></div>
 </div>
 
-<div class="panel">
+<div class="panel" id="logs">
 <h2>Logs</h2>
-<div style="margin-bottom:8px">
-    <label for="resetBinId">Bin ID (optional): </label>
+<div style="margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <label for="resetBinId" style="white-space:nowrap">Bin ID (optional): </label>
     <input id="resetBinId" placeholder="leave empty to clear all" style="width:120px;padding:6px;margin-left:6px">
-    <button onclick="resetLogs()" style="margin-left:10px">Reset Logs</button>
+    <button id="resetBtn" class="btn-danger" onclick="resetLogs()" style="margin-left:10px">Reset Logs</button>
     <small style="display:block;color:#666;margin-top:6px">Backups are stored in <code>database/backups/</code> before deletion.</small>
 </div>
 <div id="resetResult" style="padding:8px;margin-top:8px;display:none;border-radius:6px"></div>
