@@ -13,7 +13,7 @@ req.session.admin = true
 	req.session.username = username
 	// debug log session info and ensure session is saved before responding
 	try{ console.log(`[auth/login] pid=${process.pid} sessionID=${req.sessionID} sessionBefore=${JSON.stringify(req.session)}`) }catch(e){}
-	req.session.save((err)=>{
+	return req.session.save((err)=>{
 		if(err) console.error('[auth/login] session.save error', err)
 		try{ console.log(`[auth/login] pid=${process.pid} sessionSaved sessionID=${req.sessionID}`) }catch(e){}
 		return res.json({success:true})
