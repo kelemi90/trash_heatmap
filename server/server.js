@@ -3,7 +3,18 @@ const path = require("path")
 const os = require("os")
 const session = require("express-session")
 const sqlite3 = require("sqlite3").verbose()
-const RedisStore = require('connect-redis')(session)
+// connect-redis may export differently across versions (function or { default: fn })
+const connectRedisModule = require('connect-redis')
+let RedisStore
+if(typeof connectRedisModule === 'function'){
+    RedisStore = connectRedisModule(session)
+} else if(connectRedisModule && typeof connectRedisModule.default === 'function'){
+    RedisStore = connectRedisModule.default(session)
+} else {
+    // fallback: attempt to call if module is an object exposing callable
+    try{ RedisStore = connectRedisModule(session) }catch(e){ RedisStore = null }
+}
+
 const { createClient } = require('redis')
 
 const adminAuth = require("./middleware/adminAuth")
