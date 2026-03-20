@@ -3,6 +3,8 @@ const path = require("path")
 const os = require("os")
 const session = require("express-session")
 const sqlite3 = require("sqlite3").verbose()
+const RedisStore = require('connect-redis')(session)
+const { createClient } = require('redis')
 
 const adminAuth = require("./middleware/adminAuth")
 const auth = require("./routes/auth")
@@ -52,13 +54,24 @@ function getLocalIP(){
 ----------------------------- */
 
 app.use(express.json())
+
+// Configure Redis-backed session store (recommended for production)
+const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379'
+const redisClient = createClient({ url: redisUrl })
+redisClient.on('error', (err) => { try{ logger.error('Redis Client Error: ' + err) }catch(e){ console.error(e) } })
+redisClient.connect().catch((err)=>{ try{ logger.error('Failed to connect to Redis: ' + err) }catch(e){ console.error(e) } })
+
 app.use(session({
-secret: process.env.SESSION_SECRET || 'KuMm1tus',
-resave:false,
-saveUninitialized:false,
-cookie:{
-maxAge:1000*60*60*2
-}
+    store: new RedisStore({ client: redisClient }),
+    secret: process.env.SESSION_SECRET || 'KuMm1tus',
+    resave:false,
+    saveUninitialized:false,
+    cookie:{
+        maxAge:1000*60*60*2,
+        httpOnly: true,
+        secure: (process.env.PUBLIC_PROTOCOL === 'https' || process.env.NODE_ENV === 'production'),
+        sameSite: 'lax'
+    }
 }))
 
 // Request logging middleware

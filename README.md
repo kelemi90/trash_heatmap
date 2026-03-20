@@ -216,6 +216,65 @@ env_production: {
 }
 ```
 
+## Running Redis (session store)
+
+This project can use Redis as a shared session store (recommended for production or when running multiple Node processes / pm2 in cluster mode). The server reads `REDIS_URL` (default: `redis://127.0.0.1:6379`) and uses `connect-redis` + `redis` client to persist sessions.
+
+Quick options to run Redis locally:
+
+- Run with Docker (recommended for a local/test instance):
+
+```bash
+# start a Redis container (exposes 6379)
+docker run -d --name trash-redis -p 6379:6379 redis:7-alpine
+
+# stop and remove when done
+docker stop trash-redis && docker rm trash-redis
+```
+
+- Ubuntu / Debian (apt):
+
+```bash
+sudo apt update
+sudo apt install -y redis-server
+sudo systemctl enable --now redis-server
+```
+
+- macOS (Homebrew):
+
+```bash
+brew install redis
+brew services start redis
+```
+
+Verify Redis is running:
+
+```bash
+redis-cli PING
+# should reply: PONG
+```
+
+NPM packages required for Redis session store (already added to this project):
+
+```bash
+npm install connect-redis redis
+```
+
+Environment variable example (export or set in `ecosystem.config.js`):
+
+```bash
+export REDIS_URL=redis://127.0.0.1:6379
+export SESSION_SECRET="<strong-random-secret>"
+```
+
+Security and production notes:
+
+- Do not expose Redis directly to the public internet. Use a private network or SSH tunnel when accessing remote Redis instances.
+- Use a strong `SESSION_SECRET` and do not commit it to source control.
+- Consider Redis AUTH/password or network-level protections for production deployments.
+- Monitor Redis memory usage if you store many sessions.
+
+
 ## Admin tool: Reset / Clear logs
 
 An admin-only HTTP endpoint lets you back up and clear bin logs safely. It is protected by the same admin session used for the admin pages.
