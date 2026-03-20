@@ -1,6 +1,9 @@
 const express = require("express")
 const router = express.Router()
 const sqlite3 = require("sqlite3").verbose()
+const fs = require('fs')
+const path = require('path')
+const adminAuth = require('../middleware/adminAuth')
 
 console.log("[routes/logs] loaded")
 
@@ -24,7 +27,7 @@ error:"Missing username or bin_id"
 /* VERIFY USER EXISTS */
 
 db.get(
-`SELECT username FROM users WHERE username=?`,
+`SELECT username FROM users WHERE username = ? COLLATE NOCASE`,
 [username],
 (err,user)=>{
 
@@ -42,14 +45,18 @@ invalid_user:true
 
 }
 
+/* Use the canonical username as stored in the users table so casing
+	is consistent for logs. */
+const canonicalUser = user.username
+
 /* CHECK LAST BIN LOG */
 
 db.get(
 (`SELECT timestamp FROM logs
-WHERE bin_id=? AND username=?
+WHERE bin_id=? AND username = ? COLLATE NOCASE
 ORDER BY timestamp DESC
 LIMIT 1`),
-[bin_id, username],
+[bin_id, canonicalUser],
 (err,row)=>{
 
 if(err){
@@ -81,7 +88,7 @@ seconds_remaining:Math.floor(DUPLICATE_WINDOW_SECONDS-diff)
 db.run(
 `INSERT INTO logs (username,bin_id,timestamp)
 VALUES (?,?,datetime('now'))`,
-[username,bin_id],
+[canonicalUser,bin_id],
 function(err){
 
 if(err){
@@ -174,3 +181,56 @@ router.get("/ranking",(req,res)=>{
 })
 
 module.exports = router
+
+/* -----------------------------
+   ADMIN: Reset / Clear logs
+   - Backs up logs to database/backups/logs-<ts>.json before deleting
+   - Accepts optional JSON body: { bin_id: <number> } to clear only that bin
+   - Protected by adminAuth middleware
+----------------------------- */
+router.post('/admin/reset-logs', adminAuth, (req, res) => {
+
+	const bin_id = req.body && req.body.bin_id ? req.body.bin_id : null
+
+	// ensure backups dir
+	const backupsDir = path.join(__dirname, '..', '..', 'database', 'backups')
+	try{ fs.mkdirSync(backupsDir, { recursive: true }) }catch(e){}
+
+	const ts = new Date().toISOString().replace(/[:.]/g,'-')
+	const backupFile = bin_id ? `logs-bin-${bin_id}-${ts}.json` : `logs-all-${ts}.json`
+	const backupPath = path.join(backupsDir, backupFile)
+
+	const selectSql = bin_id ? 'SELECT * FROM logs WHERE bin_id = ? ORDER BY timestamp' : 'SELECT * FROM logs ORDER BY timestamp'
+	const selectParams = bin_id ? [bin_id] : []
+
+	db.all(selectSql, selectParams, (err, rows) => {
+		if (err) {
+			console.error('Error reading logs for backup', err)
+			return res.status(500).json({ success: false, error: 'read_failed' })
+		}
+
+		try{
+			fs.writeFileSync(backupPath, JSON.stringify(rows, null, 2), { encoding: 'utf8' })
+		}catch(e){
+			console.error('Error writing backup file', e)
+			return res.status(500).json({ success: false, error: 'backup_failed' })
+		}
+
+		const deleteSql = bin_id ? 'DELETE FROM logs WHERE bin_id = ?' : 'DELETE FROM logs'
+		const deleteParams = bin_id ? [bin_id] : []
+
+		db.run(deleteSql, deleteParams, function(err){
+			if(err){
+				console.error('Error deleting logs', err)
+				return res.status(500).json({ success:false, error:'delete_failed' })
+			}
+
+			// run VACUUM to reclaim space (best-effort)
+			db.run('VACUUM', [], ()=>{})
+
+			res.json({ success:true, deleted: this && this.changes ? this.changes : null, backup: backupPath })
+		})
+
+	})
+
+})
