@@ -31,6 +31,32 @@ border-bottom:1px solid #eee;
 font-size:13px;
 }
 
+#bulkActions{
+display:flex;
+flex-direction:column;
+gap:8px;
+margin-bottom:10px;
+}
+
+#bulkActions button{
+padding:6px 8px;
+}
+
+#selectionInfo{
+font-size:12px;
+color:#555;
+}
+
+.bin-row{
+display:flex;
+align-items:center;
+gap:6px;
+}
+
+.bin-row label{
+cursor:pointer;
+}
+
 .map-container{
 position:relative;
 }
@@ -54,6 +80,11 @@ justify-content:center;
 transform:translate(-50%,-50%);
 cursor:pointer;
 user-select:none;
+}
+
+.marker.selected{
+background:#0057a8;
+box-shadow:0 0 0 2px rgba(255,255,255,0.9), 0 0 0 4px rgba(0,87,168,0.45);
 }
 
 </style>
@@ -84,6 +115,11 @@ else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
 
 <div id="sidebar">
 <h3>Bin Coordinates</h3>
+<div id="bulkActions">
+<button id="resetSelectedBtn" disabled>Reset Selected To X:0 Y:0</button>
+<button id="clearSelectionBtn" disabled>Clear Selection</button>
+<div id="selectionInfo">0 bins selected</div>
+</div>
 <div id="binList"></div>
 </div>
 
@@ -99,9 +135,13 @@ let topIndex = 0
 
 const map = document.getElementById("map")
 const binList = document.getElementById("binList")
+const resetSelectedBtn = document.getElementById("resetSelectedBtn")
+const clearSelectionBtn = document.getElementById("clearSelectionBtn")
+const selectionInfo = document.getElementById("selectionInfo")
 
 let dragging = null
 let bins = []
+const selectedBins = new Set()
 
 /* LOAD BINS */
 
@@ -123,7 +163,7 @@ marker.innerText = bin.id
 
 let x,y
 
-if(bin.x && bin.y){
+if(bin.x !== null && bin.x !== undefined && bin.y !== null && bin.y !== undefined){
 
 const screen = mapToScreen(bin.x,bin.y,map)
 x = screen.x
@@ -151,6 +191,7 @@ marker.style.left = x+"px"
 marker.style.top = y+"px"
 
 marker.dataset.id = bin.id
+if(selectedBins.has(bin.id)) marker.classList.add("selected")
 
 marker.addEventListener("mousedown", startDrag)
 
@@ -170,11 +211,70 @@ body:JSON.stringify({id:bin.id})
 marker.remove()
 
 bins = bins.filter(b=>b.id != bin.id)
+selectedBins.delete(bin.id)
 
 updateList()
 })
 
 map.appendChild(marker)
+
+}
+
+function updateSelectionUi(){
+
+const count = selectedBins.size
+
+selectionInfo.innerText = count+" bins selected"
+resetSelectedBtn.disabled = count === 0
+clearSelectionBtn.disabled = count === 0
+
+document.querySelectorAll(".marker").forEach(marker=>{
+const markerId = Number(marker.dataset.id)
+marker.classList.toggle("selected", selectedBins.has(markerId))
+})
+
+}
+
+async function resetSelectedBins(){
+
+if(selectedBins.size === 0) return
+
+if(!confirm("Reset selected bins to x:0, y:0?")) return
+
+const selectedIds = Array.from(selectedBins)
+
+try{
+
+await Promise.all(selectedIds.map(id=>
+fetch("/api/bin/update",{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({id:id,x:0,y:0})
+})
+))
+
+const origin = mapToScreen(0,0,map)
+
+selectedIds.forEach(id=>{
+const bin = bins.find(b=>b.id === id)
+if(bin){
+bin.x = 0
+bin.y = 0
+}
+
+const marker = map.querySelector(`.marker[data-id="${id}"]`)
+if(marker){
+marker.style.left = origin.x+"px"
+marker.style.top = origin.y+"px"
+}
+})
+
+selectedBins.clear()
+updateList()
+
+}catch(err){
+alert("Failed to reset selected bins")
+}
 
 }
 
@@ -287,16 +387,39 @@ bins
 
 let row=document.createElement("div")
 
-row.innerText =
+row.className = "bin-row"
+
+const checkbox = document.createElement("input")
+checkbox.type = "checkbox"
+checkbox.checked = selectedBins.has(b.id)
+checkbox.addEventListener("change",()=>{
+if(checkbox.checked) selectedBins.add(b.id)
+else selectedBins.delete(b.id)
+updateSelectionUi()
+})
+
+const label = document.createElement("label")
+label.innerText =
 "Bin "+b.id+
 " | X:"+Number(b.x).toFixed(2)+
 " Y:"+Number(b.y).toFixed(2)
+
+row.appendChild(checkbox)
+row.appendChild(label)
 
 binList.appendChild(row)
 
 })
 
+updateSelectionUi()
+
 }
+
+resetSelectedBtn.addEventListener("click",resetSelectedBins)
+clearSelectionBtn.addEventListener("click",()=>{
+selectedBins.clear()
+updateList()
+})
 
 </script>
 
