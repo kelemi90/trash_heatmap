@@ -263,6 +263,10 @@ function updateStatus(){
       clearMarkers()
 
       bins.forEach(b=>{
+  // skip bins that don't have a valid placement (often stored as 0/0)
+  if((b.x === null || typeof b.x === 'undefined' || b.x === 0) && (b.y === null || typeof b.y === 'undefined' || b.y === 0)){
+    return // nothing to render for unplaced bins
+  }
   const screen = mapToScreenUsingImage(b.x,b.y)
 
         let marker = document.createElement('div')
