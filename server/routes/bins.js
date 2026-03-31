@@ -2,6 +2,8 @@ const express = require("express")
 const router = express.Router()
 const db = require("../db")
 const adminAuth = require("../middleware/adminAuth")
+const fs = require('fs')
+const path = require('path')
 
 router.get("/bins",(req,res)=>{
 
@@ -74,6 +76,56 @@ res.json(rows)
 
 })
 
+})
+
+/* -----------------------------
+   ADMIN: Reset all bin positions to x=0, y=0
+   Creates a backup before updating.
+   Protected by adminAuth middleware.
+----------------------------- */
+router.post('/admin/reset-all-bins', adminAuth, (req, res) => {
+
+	// ensure backups dir
+	const backupsDir = path.join(__dirname, '..', '..', 'database', 'backups')
+	try { fs.mkdirSync(backupsDir, { recursive: true }) } catch (e) {}
+
+	const ts = new Date().toISOString().replace(/[:.]/g, '-')
+	const backupFile = `bins-positions-${ts}.json`
+	const backupPath = path.join(backupsDir, backupFile)
+
+	db.all('SELECT * FROM bins', [], (err, rows) => {
+		if (err) {
+			console.error('Error reading bins for backup', err)
+			return res.status(500).json({ success: false, error: 'read_failed' })
+		}
+
+		try {
+			fs.writeFileSync(backupPath, JSON.stringify(rows, null, 2), { encoding: 'utf8' })
+		} catch (e) {
+			console.error('Error writing bin backup file', e)
+			return res.status(500).json({ success: false, error: 'backup_failed' })
+		}
+
+		db.run('UPDATE bins SET x = 0, y = 0', [], function (err) {
+			if (err) {
+				console.error('Error resetting bins', err)
+				return res.status(500).json({ success: false, error: 'update_failed' })
+			}
+
+			const updatedCount = this.changes
+
+			// Audit log (best-effort)
+			const adminUsername = (req.session && req.session.username) ? req.session.username : 'unknown'
+			const details = JSON.stringify({ updated: updatedCount, backup: backupPath })
+			db.run(
+				`INSERT INTO audit_logs (admin_username, action, details) VALUES (?,?,?)`,
+				[adminUsername, 'reset-all-bins', details],
+				() => {}
+			)
+
+			res.json({ success: true, updated: updatedCount, backup: backupPath })
+		})
+	})
 })
 
 module.exports = router

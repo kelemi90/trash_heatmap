@@ -88,6 +88,13 @@ else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
 <div id="users"></div>
 </div>
 
+<div class="panel" id="reset-bins-panel">
+<h2>Reset All Bin Positions</h2>
+<p style="color:#555;margin-bottom:10px">Moves every bin back to x:0, y:0 (the staging area). Current positions are backed up first.</p>
+<button class="btn-danger" onclick="resetAllBins()">Reset All Bins to Origin</button>
+<div id="resetBinsResult" style="padding:8px;margin-top:8px;display:none;border-radius:6px"></div>
+</div>
+
 <div class="panel" id="logs">
 <h2>Logs</h2>
 <div style="margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -255,6 +262,41 @@ credentials:"same-origin"
 // after logout send user to dashboard view
 window.location="/dashboard.html"
 
+}
+
+/* RESET ALL BIN POSITIONS (admin) */
+async function resetAllBins(){
+    if(!confirm('Move ALL bins to x:0, y:0? Current positions will be backed up first.')) return
+
+    try{
+        const res = await fetch('/api/admin/reset-all-bins', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' }
+        })
+
+        if(res.status === 401) return window.location = '/admin_login.html'
+
+        const data = await res.json()
+        const out = document.getElementById('resetBinsResult')
+        out.style.display = 'block'
+        if(data && data.success){
+            out.style.background = '#e6ffed'
+            out.style.color = '#0a640a'
+            out.innerHTML = `All bins reset OK.<br><strong>Updated:</strong> ${data.updated} bins<br><strong>Backup:</strong> ${data.backup}`
+        }else{
+            out.style.background = '#ffecec'
+            out.style.color = '#a33'
+            out.innerText = 'Reset failed: ' + (data && data.error ? data.error : JSON.stringify(data))
+        }
+    }catch(e){
+        console.error(e)
+        const out = document.getElementById('resetBinsResult')
+        out.style.display = 'block'
+        out.style.background = '#ffecec'
+        out.style.color = '#a33'
+        out.innerText = 'Reset failed: ' + e
+    }
 }
 
 /* RESET LOGS (admin) */
