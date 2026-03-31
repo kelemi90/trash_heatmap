@@ -1,6 +1,7 @@
 const express = require("express")
 const router = express.Router()
 const db = require("../db")
+const adminAuth = require("../middleware/adminAuth")
 
 router.get("/bins",(req,res)=>{
 
@@ -10,7 +11,7 @@ res.json(rows)
 
 })
 
-router.post("/bin/update",(req,res)=>{
+router.post("/bin/update", adminAuth, (req,res)=>{
 
 const {id,x,y} = req.body
 

@@ -116,7 +116,7 @@ else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
 <div id="sidebar">
 <h3>Bin Coordinates</h3>
 <div id="bulkActions">
-<button id="resetSelectedBtn" disabled>Reset Selected To X:0 Y:0</button>
+<button id="resetSelectedBtn" disabled>Return Selected Near X:0 Y:0</button>
 <button id="clearSelectionBtn" disabled>Clear Selection</button>
 <div id="selectionInfo">0 bins selected</div>
 </div>
@@ -239,33 +239,45 @@ async function resetSelectedBins(){
 
 if(selectedBins.size === 0) return
 
-if(!confirm("Reset selected bins to x:0, y:0?")) return
+if(!confirm("Return selected bins near x:0, y:0 without stacking?")) return
 
 const selectedIds = Array.from(selectedBins)
+const spacing = 30
+const columns = 10
+
+const targets = selectedIds.map((id, index)=>{
+const col = index % columns
+const row = Math.floor(index / columns)
+
+return {
+id,
+x: col * spacing,
+y: row * spacing
+}
+})
 
 try{
 
-await Promise.all(selectedIds.map(id=>
+await Promise.all(targets.map(target=>
 fetch("/api/bin/update",{
 method:"POST",
 headers:{'Content-Type':'application/json'},
-body:JSON.stringify({id:id,x:0,y:0})
+body:JSON.stringify({id:target.id,x:target.x,y:target.y})
 })
 ))
 
-const origin = mapToScreen(0,0,map)
-
-selectedIds.forEach(id=>{
-const bin = bins.find(b=>b.id === id)
+targets.forEach(target=>{
+const bin = bins.find(b=>b.id === target.id)
 if(bin){
-bin.x = 0
-bin.y = 0
+bin.x = target.x
+bin.y = target.y
 }
 
-const marker = map.querySelector(`.marker[data-id="${id}"]`)
+const marker = map.querySelector(`.marker[data-id="${target.id}"]`)
 if(marker){
-marker.style.left = origin.x+"px"
-marker.style.top = origin.y+"px"
+const screen = mapToScreen(target.x,target.y,map)
+marker.style.left = screen.x+"px"
+marker.style.top = screen.y+"px"
 }
 })
 
