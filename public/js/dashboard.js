@@ -29,6 +29,20 @@ function createHeatmap(){
     if(heatmap._renderer && typeof heatmap._renderer.setDimensions === 'function'){
       heatmap._renderer.setDimensions(w,h)
     }
+    // Ensure the heatmap canvas sits exactly over the image and doesn't capture pointer events.
+    try{
+      Array.from(heatLayer.querySelectorAll('canvas')).forEach(c => {
+        c.style.position = 'absolute'
+        c.style.top = '0'
+        c.style.left = '0'
+        c.style.width = '100%'
+        c.style.height = '100%'
+        c.style.pointerEvents = 'none'
+        c.style.zIndex = 2
+        // move canvas to be the first child of heatLayer so it sits below markers but above image
+        if(c.parentElement === heatLayer) heatLayer.insertBefore(c, heatLayer.firstChild)
+      })
+    }catch(e){}
   }catch(e){ console.warn('heatmap resize failed',e) }
   return heatmap
 }
