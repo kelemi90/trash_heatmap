@@ -29,6 +29,25 @@ function createHeatmap(){
     if(heatmap._renderer && typeof heatmap._renderer.setDimensions === 'function'){
       heatmap._renderer.setDimensions(w,h)
     }
+    // Ensure heatLayer matches the displayed image size (some layouts report 0/1px height)
+    try{
+      if(mapImg){
+        const imgRect = mapImg.getBoundingClientRect()
+        heatLayer.style.position = 'absolute'
+        heatLayer.style.left = '0px'
+        heatLayer.style.top = '0px'
+        heatLayer.style.width = imgRect.width + 'px'
+        heatLayer.style.height = imgRect.height + 'px'
+        // ensure markerLayer matches as well
+        if(typeof markerLayer !== 'undefined' && markerLayer){
+          markerLayer.style.position = 'absolute'
+          markerLayer.style.left = '0px'
+          markerLayer.style.top = '0px'
+          markerLayer.style.width = imgRect.width + 'px'
+          markerLayer.style.height = imgRect.height + 'px'
+        }
+      }
+    }catch(e){}
     // Ensure the heatmap canvas sits exactly over the image and doesn't capture pointer events.
     try{
       Array.from(heatLayer.querySelectorAll('canvas')).forEach(c => {
@@ -45,6 +64,62 @@ function createHeatmap(){
     }catch(e){}
   }catch(e){ console.warn('heatmap resize failed',e) }
   return heatmap
+}
+
+// Ensure heatLayer and the heatmap canvas match the displayed image size.
+// Retries a few times if layout hasn't settled (useful on slow image loads or responsive shifts).
+function ensureHeatLayerSized(retries = 6){
+  try{
+    if(!mapImg || !heatLayer) return
+    const imgRect = mapImg.getBoundingClientRect()
+    // If image has no height yet, retry shortly
+    if(imgRect.height <= 2 && retries > 0){
+      setTimeout(()=> ensureHeatLayerSized(retries - 1), 200)
+      return
+    }
+
+    heatLayer.style.position = 'absolute'
+    heatLayer.style.left = '0px'
+    heatLayer.style.top = '0px'
+    heatLayer.style.width = imgRect.width + 'px'
+    heatLayer.style.height = imgRect.height + 'px'
+
+    if(typeof markerLayer !== 'undefined' && markerLayer){
+      markerLayer.style.position = 'absolute'
+      markerLayer.style.left = '0px'
+      markerLayer.style.top = '0px'
+      markerLayer.style.width = imgRect.width + 'px'
+      markerLayer.style.height = imgRect.height + 'px'
+    }
+
+    // Resize heatmap renderer if present
+    if(heatmap && heatmap._renderer && typeof heatmap._renderer.setDimensions === 'function'){
+      const w = Math.max(1, heatLayer.clientWidth)
+      const h = Math.max(1, heatLayer.clientHeight)
+      heatmap._renderer.setDimensions(w,h)
+    }
+
+    // fix canvas styles (ensure full-cover and non-interactive)
+    try{
+      Array.from(heatLayer.querySelectorAll('canvas')).forEach(c => {
+        c.style.position = 'absolute'
+        c.style.top = '0'
+        c.style.left = '0'
+        c.style.width = '100%'
+        c.style.height = '100%'
+        c.style.pointerEvents = 'none'
+        c.style.zIndex = 2
+        if(c.parentElement === heatLayer) heatLayer.insertBefore(c, heatLayer.firstChild)
+      })
+    }catch(e){}
+
+    // if height still tiny, retry a couple more times
+    if(heatLayer.clientHeight <= 2 && retries > 0){
+      setTimeout(()=> ensureHeatLayerSized(retries - 1), 300)
+    }
+  }catch(e){
+    if(retries > 0) setTimeout(()=> ensureHeatLayerSized(retries - 1), 200)
+  }
 }
 
 // initialize heatmap when the map image is loaded (so container has correct size)
