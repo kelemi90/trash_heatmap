@@ -30,11 +30,8 @@ const heatRefreshBtn = document.getElementById('heatRefresh')
 
 function createHeatmap(){
   if(heatmap) return heatmap
-  // determine radius from control when available
-  let radius = 40
-  try{
-    if(heatRadiusEl) radius = Math.max(10, Math.min(200, parseInt(heatRadiusEl.value,10) || 40))
-  }catch(e){}
+  // fixed radius for event dashboard (no UI adjustment needed)
+  const radius = 40
   // ensure overlay matches image size before creating canvas
   try{ ensureHeatLayerSized() }catch(e){}
 
@@ -398,27 +395,15 @@ function updateHeatmap(){
 }
 
 // wire control events if they exist
-try{
-  if(heatRadiusEl){
-    heatRadiusEl.addEventListener('input', ()=>{
-      if(heatRadiusVal) heatRadiusVal.innerText = heatRadiusEl.value
-      // recreate heatmap renderer with new radius
-      heatmap = null
-      createHeatmap()
-      updateHeatmap()
-    })
-    // initialize display value
-    if(heatRadiusVal) heatRadiusVal.innerText = heatRadiusEl.value
-  }
+  try{
+    if(heatRefreshBtn){
+      heatRefreshBtn.addEventListener('click', ()=>{ refresh() })
+    }
 
-  if(heatRefreshBtn){
-    heatRefreshBtn.addEventListener('click', ()=>{ refresh() })
-  }
-
-  if(heatRangeEl){
-    heatRangeEl.addEventListener('change', ()=>{ refresh() })
-  }
-}catch(e){/* ignore wiring errors */}
+    if(heatRangeEl){
+      heatRangeEl.addEventListener('change', ()=>{ refresh() })
+    }
+  }catch(e){/* ignore wiring errors */}
 
 function updateActivity(){
   return fetch('/api/activity')
