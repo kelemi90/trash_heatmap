@@ -349,9 +349,20 @@ function updateHeatmap(){
       // ensure heatmap exists and is sized
       createHeatmap()
 
-      heatPoints = data.map(p=>{
+      // Map heat data to screen coordinates but filter out invalid/unplaced
+      // bins (commonly stored as 0/0) so no heat appears at the map origin.
+      heatPoints = []
+      data.forEach(p=>{
+        if(!p) return
+        // treat missing or zero coordinates as unplaced
+        const missingX = (p.x === null || typeof p.x === 'undefined' || Number(p.x) === 0)
+        const missingY = (p.y === null || typeof p.y === 'undefined' || Number(p.y) === 0)
+        if(missingX && missingY) return
         const screen = mapToScreenUsingImage(p.x,p.y)
-        return { x: screen.x, y: screen.y, value: p.value }
+        if(!isFinite(screen.x) || !isFinite(screen.y)) return
+        // ignore points outside the visible image area (optional safety)
+        if(screen.x < 1 || screen.y < 1) return
+        heatPoints.push({ x: Math.round(screen.x), y: Math.round(screen.y), value: p.value })
       })
 
       if(heatmap){
