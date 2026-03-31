@@ -13,6 +13,20 @@ const db = new sqlite3.Database("database/trash.db")
 // Set to 10 minutes (600 seconds)
 const DUPLICATE_WINDOW_SECONDS = 60 * 10
 
+// Helper: parse SQLite datetime('now') strings like "YYYY-MM-DD HH:MM:SS"
+// into a JS Date object in UTC. Returns null for invalid values.
+function parseSqlTimestamp(ts){
+	if(!ts) return null
+	if(typeof ts === 'number') return new Date(ts)
+	const s = String(ts).trim()
+	// if space-separated datetime like 'YYYY-MM-DD HH:MM:SS', convert to 'YYYY-MM-DDTHH:MM:SSZ'
+	if(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(s)){
+		return new Date(s.replace(' ','T')+'Z')
+	}
+	const d = new Date(s)
+	return isNaN(d.getTime()) ? null : d
+}
+
 router.post("/log",(req,res)=>{
 
 const {username, bin_id} = req.body
@@ -66,15 +80,21 @@ db.get(
 		}
 
 		if (row) {
-			const last = new Date(row.timestamp).getTime()
-			const now = Date.now()
-			const diff = (now - last) / 1000
-			if (diff < DUPLICATE_WINDOW_SECONDS) {
-				return res.json({
-					success: false,
-					duplicate: true,
-					seconds_remaining: Math.floor(DUPLICATE_WINDOW_SECONDS - diff)
-				})
+			const lastDate = parseSqlTimestamp(row.timestamp)
+			if(!lastDate){
+				console.warn('[logs] could not parse last timestamp', row.timestamp)
+			} else {
+				const last = lastDate.getTime()
+				const now = Date.now()
+				const diff = (now - last) / 1000
+				console.log(`[logs] last log for bin ${bin_id} at ${row.timestamp} (${lastDate.toISOString()}), diff=${diff}s`)
+				if (diff < DUPLICATE_WINDOW_SECONDS) {
+					return res.json({
+						success: false,
+						duplicate: true,
+						seconds_remaining: Math.floor(DUPLICATE_WINDOW_SECONDS - diff)
+					})
+				}
 			}
 		}
 

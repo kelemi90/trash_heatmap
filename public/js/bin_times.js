@@ -4,7 +4,6 @@ const tooltip = document.getElementById('tooltip')
 const binsList = document.getElementById('binsList')
 const logsDiv = document.getElementById('logs')
 
-const ctxLast = document.getElementById('chartLastEmpty').getContext('2d')
 const ctxEmpties = document.getElementById('chartEmpties').getContext('2d')
 
 let chartLast = null
@@ -86,73 +85,8 @@ async function loadData(){
   // cache logs for CSV export and filtering
   logsCache = logs
 
-  // Build data for last-empty chart
-  const labels = bins.map(b=>`Bin ${b.id}`)
-  const minutes = bins.map(b=>{
-    const m = minutesAgo(b.last)
-    return m === null ? null : m
-  })
-
-  const bgColors = bins.map(b=>colorByRecency(b.last))
-
   // Destroy previous charts
-  if(chartLast) chartLast.destroy()
   if(chartEmpties) chartEmpties.destroy()
-
-  // Keep original minutes for tooltips, but cap displayed values to 240 so the chart stays usable.
-  const originalMinutes = minutes.slice()
-  const displayMinutes = minutes.map(m => (m === null ? 240 : Math.min(m, 240)))
-
-  // create an overlay dataset to mark capped bars (originalMinutes > 240)
-  const cappedData = originalMinutes.map(m => (m !== null && m > 240) ? 240 : null)
-
-  chartLast = new Chart(ctxLast, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Minutes since last empty',
-        data: displayMinutes,
-        backgroundColor: bgColors
-      },
-      // overlay line dataset used only to draw a top marker for capped bars
-      {
-        type: 'line',
-        label: 'capped-markers',
-        data: cappedData,
-        borderColor: 'rgba(0,0,0,0)',
-        backgroundColor: '#000',
-        pointStyle: 'triangle',
-        pointRadius: 7,
-        pointHoverRadius: 9,
-        tension: 0,
-        spanGaps: true,
-        showLine: false,
-        order: 2
-      }
-      ]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: { beginAtZero: true, max: 240, ticks: { stepSize: 30 } }
-      },
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: function(context){
-              const idx = context.dataIndex
-              const real = originalMinutes[idx]
-              if(real === null) return 'Last empty: never'
-              if(real > 240) return `Last empty: ${real} min (>=240 shown)`
-              return `Last empty: ${real} min`
-            }
-          }
-        }
-      },
-      plugins: { legend: { display: false } }
-    }
-  })
 
   // Empties per bin chart
   const rankLabels = ranking.map(r=>`Bin ${r.bin_id}`)
@@ -181,12 +115,15 @@ async function loadData(){
     const lastDisplay = b.last ? `${niceTimeAgo(b.last)} (${formatLocal(b.last)})` : 'never'
     row.innerHTML = `<strong>Bin ${b.id}</strong> — Last: ${lastDisplay} — Empties: ${emptiesMap[b.id] || 0}`
   row.addEventListener('click', ()=>{
-      // highlight the bar in chartLast
-      const idx = bins.findIndex(x=>x.id===b.id)
-      if(idx>=0){
-        chartLast.setActiveElements([{datasetIndex:0,index:idx}])
-        chartLast.update()
-      }
+      // highlight the bar in the empties chart
+      try{
+        const label = `Bin ${b.id}`
+        const idx = chartEmpties.data.labels.findIndex(l=>l===label)
+        if(idx>=0){
+          chartEmpties.setActiveElements([{datasetIndex:0,index:idx}])
+          chartEmpties.update()
+        }
+      }catch(e){}
       // apply filter and render logs
       currentFilterBin = b.id
       document.getElementById('currentFilter').innerText = `Bin ${b.id}`
@@ -248,20 +185,6 @@ async function loadData(){
   if(printBtn) printBtn.onclick = ()=> window.print()
 
   // add chart click handlers to filter logs
-  if(chartLast && chartLast.canvas){
-    chartLast.canvas.onclick = function(evt){
-      const points = chartLast.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true)
-      if(points.length){
-        const idx = points[0].index
-        const label = chartLast.data.labels[idx]
-        const id = label.split(' ')[1]
-        currentFilterBin = id
-        document.getElementById('currentFilter').innerText = `Bin ${id}`
-        renderLogs()
-      }
-    }
-  }
-
   if(chartEmpties && chartEmpties.canvas){
     chartEmpties.canvas.onclick = function(evt){
       const points = chartEmpties.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true)
