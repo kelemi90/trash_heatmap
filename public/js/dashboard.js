@@ -1,4 +1,19 @@
 // Dashboard client logic moved out of HTML
+// Globally prefer willReadFrequently for 2D contexts to avoid
+// repeated getImageData warnings in browsers when libraries read pixels.
+// We keep a safe guard so we don't override multiple times.
+try{
+  if(typeof HTMLCanvasElement !== 'undefined' && !HTMLCanvasElement.prototype.__getContextPatched){
+    const _origGetContext = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = function(type, opts){
+      try{
+        if(type === '2d') opts = Object.assign({}, opts, { willReadFrequently: true })
+      }catch(e){}
+      return _origGetContext.call(this, type, opts)
+    }
+    HTMLCanvasElement.prototype.__getContextPatched = true
+  }
+}catch(e){}
 
 const mapEl = document.getElementById('map')
 const heatLayer = document.getElementById('heatLayer')
