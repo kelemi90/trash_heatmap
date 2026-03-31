@@ -126,20 +126,24 @@ db.get(
 
 router.get("/logs",(req,res)=>{
 
-db.all(
-`SELECT * FROM logs
-ORDER BY timestamp DESC
-LIMIT 100`,
-(err,rows)=>{
+	const bin_id = req.query.bin_id ? parseInt(req.query.bin_id, 10) : null
 
-if(err){
-console.error(err)
-return res.status(500).json({error:true})
-}
+	const sql = bin_id
+		? `SELECT * FROM logs WHERE bin_id = ? ORDER BY timestamp DESC LIMIT 200`
+		: `SELECT * FROM logs ORDER BY timestamp DESC LIMIT 200`
 
-res.json(rows)
+	const params = bin_id ? [bin_id] : []
 
-})
+	db.all(sql, params, (err, rows) => {
+
+		if(err){
+			console.error(err)
+			return res.status(500).json({error:true})
+		}
+
+		res.json(rows)
+
+	})
 
 })
 

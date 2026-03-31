@@ -97,11 +97,36 @@ else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
 
 <div class="panel" id="logs">
 <h2>Logs</h2>
-<div style="margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-    <label for="resetBinId" style="white-space:nowrap">Bin ID (optional): </label>
-    <input id="resetBinId" placeholder="leave empty to clear all" style="width:120px;padding:6px;margin-left:6px">
-    <button id="resetBtn" class="btn-danger" onclick="resetLogs()" style="margin-left:10px">Reset Logs</button>
-    <small style="display:block;color:#666;margin-top:6px">Backups are stored in <code>database/backups/</code> before deletion.</small>
+
+<div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <label for="filterBinId" style="white-space:nowrap">Filter by Bin ID:</label>
+    <input id="filterBinId" placeholder="leave empty for all" style="width:140px;padding:6px;">
+    <button onclick="loadLogs()">Refresh</button>
+</div>
+
+<div id="logsTable" style="overflow-x:auto;margin-bottom:16px">
+    <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <thead>
+            <tr style="background:#f0f0f0;text-align:left">
+                <th style="padding:8px;border-bottom:1px solid #ddd">#</th>
+                <th style="padding:8px;border-bottom:1px solid #ddd">Bin ID</th>
+                <th style="padding:8px;border-bottom:1px solid #ddd">User</th>
+                <th style="padding:8px;border-bottom:1px solid #ddd">Timestamp</th>
+            </tr>
+        </thead>
+        <tbody id="logsBody">
+            <tr><td colspan="4" style="padding:8px;color:#999">Loading…</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<hr style="margin:16px 0">
+<h3 style="margin-bottom:8px">Reset Logs</h3>
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <label for="resetBinId" style="white-space:nowrap">Bin ID (optional):</label>
+    <input id="resetBinId" placeholder="leave empty to clear all" style="width:140px;padding:6px;">
+    <button id="resetBtn" class="btn-danger" onclick="resetLogs()">Reset Logs</button>
+    <small style="color:#666">Backups saved to <code>database/backups/</code></small>
 </div>
 <div id="resetResult" style="padding:8px;margin-top:8px;display:none;border-radius:6px"></div>
 </div>
@@ -250,6 +275,7 @@ loadUsers()
 (async () => {
     await checkLogin()
     await loadUsers()
+    await loadLogs()
 })()
 
 async function logout(){
@@ -296,6 +322,31 @@ async function resetAllBins(){
         out.style.background = '#ffecec'
         out.style.color = '#a33'
         out.innerText = 'Reset failed: ' + e
+    }
+}
+
+/* LOAD LOGS */
+async function loadLogs(){
+    const binInput = document.getElementById('filterBinId').value.trim()
+    const url = binInput ? `/api/logs?bin_id=${encodeURIComponent(binInput)}` : '/api/logs'
+    const tbody = document.getElementById('logsBody')
+    tbody.innerHTML = '<tr><td colspan="4" style="padding:8px;color:#999">Loading…</td></tr>'
+    try{
+        const res = await fetch(url, { credentials: 'same-origin' })
+        const rows = await res.json()
+        if(!Array.isArray(rows) || rows.length === 0){
+            tbody.innerHTML = '<tr><td colspan="4" style="padding:8px;color:#999">No logs found.</td></tr>'
+            return
+        }
+        tbody.innerHTML = rows.map((r, i) => `
+            <tr style="background:${i%2===0?'#fff':'#fafafa'}">
+                <td style="padding:6px 8px;border-bottom:1px solid #eee">${r.id ?? i+1}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid #eee">${r.bin_id ?? ''}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid #eee">${r.username ?? ''}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid #eee">${r.timestamp ?? ''}</td>
+            </tr>`).join('')
+    }catch(e){
+        tbody.innerHTML = `<tr><td colspan="4" style="padding:8px;color:#a33">Failed to load logs: ${e}</td></tr>`
     }
 }
 
