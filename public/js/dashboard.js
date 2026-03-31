@@ -62,6 +62,15 @@ function createHeatmap(){
         if(c.parentElement === heatLayer) heatLayer.insertBefore(c, heatLayer.firstChild)
       })
     }catch(e){}
+    // Try to create the 2D context with willReadFrequently to avoid
+    // browser warnings when heatmap later calls getImageData.
+    try{
+      Array.from(heatLayer.querySelectorAll('canvas')).forEach(c => {
+        try{
+          c.getContext && c.getContext('2d', { willReadFrequently: true })
+        }catch(e){/* ignore; some browsers ignore options if context exists */}
+      })
+    }catch(e){}
   }catch(e){ console.warn('heatmap resize failed',e) }
   return heatmap
 }
