@@ -116,7 +116,7 @@ else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
 <div id="sidebar">
 <h3>Bin Coordinates</h3>
 <div id="bulkActions">
-<button id="resetSelectedBtn" disabled>Return Selected Near X:0 Y:0</button>
+<button id="resetSelectedBtn" disabled>Return Selected To X:0 Y:0</button>
 <button id="clearSelectionBtn" disabled>Clear Selection</button>
 <div id="selectionInfo">0 bins selected</div>
 </div>
@@ -131,8 +131,6 @@ else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
 
 <script>
 
-let topIndex = 0
-
 const map = document.getElementById("map")
 const binList = document.getElementById("binList")
 const resetSelectedBtn = document.getElementById("resetSelectedBtn")
@@ -143,13 +141,27 @@ let dragging = null
 let bins = []
 const selectedBins = new Set()
 
+const STAGING_COLUMNS = 10
+const STAGING_MARKER_SIZE = 22
+const STAGING_GAP = 4
+
+function clearEditorMarkers(){
+document.querySelectorAll("#map .marker").forEach(m=>m.remove())
+}
+
+// Backward-compatible alias for older scripts that still call mgt.clearMarks().
+if(!window.mgt) window.mgt = {}
+if(typeof window.mgt.clearMarks !== "function"){
+window.mgt.clearMarks = clearEditorMarkers
+}
+
 /* LOAD BINS */
 
 fetch("/api/bins")
 .then(r=>r.json())
 .then(data=>{
 bins = data.sort((a,b)=>a.id - b.id)
-bins.forEach(b=>createMarker(b))
+renderAllMarkers()
 updateList()
 })
 
@@ -163,7 +175,7 @@ marker.innerText = bin.id
 
 let x,y
 
-if(bin.x !== null && bin.x !== undefined && bin.y !== null && bin.y !== undefined){
+if(!isStagedBin(bin)){
 
 const screen = mapToScreen(bin.x,bin.y,map)
 x = screen.x
@@ -171,19 +183,10 @@ y = screen.y
 
 }else{
 
-const markerSize = 22
-const binsPerRow = 10
+const slot = getStagingSlot(bin.id)
 
-const col = topIndex % binsPerRow
-const row = Math.floor(topIndex / binsPerRow)
-
-
-const gap = 2
-
-x = col * (markerSize + gap) + markerSize
-y = row * (markerSize + gap) + markerSize
-
-topIndex++
+x = slot.col * (STAGING_MARKER_SIZE + STAGING_GAP) + STAGING_MARKER_SIZE
+y = slot.row * (STAGING_MARKER_SIZE + STAGING_GAP) + STAGING_MARKER_SIZE
 
 }
 
@@ -213,11 +216,35 @@ marker.remove()
 bins = bins.filter(b=>b.id != bin.id)
 selectedBins.delete(bin.id)
 
+renderAllMarkers()
 updateList()
 })
 
 map.appendChild(marker)
 
+}
+
+function isStagedBin(bin){
+const hasCoords = bin.x !== null && bin.x !== undefined && bin.y !== null && bin.y !== undefined
+if(!hasCoords) return true
+return Number(bin.x) === 0 && Number(bin.y) === 0
+}
+
+function getStagingSlot(binId){
+const stagedIds = bins
+.filter(isStagedBin)
+.map(b=>b.id)
+.sort((a,b)=>a-b)
+
+const index = Math.max(0, stagedIds.indexOf(binId))
+const col = index % STAGING_COLUMNS
+const row = Math.floor(index / STAGING_COLUMNS)
+return {col,row}
+}
+
+function renderAllMarkers(){
+clearEditorMarkers()
+bins.forEach(b=>createMarker(b))
 }
 
 function updateSelectionUi(){
@@ -239,49 +266,30 @@ async function resetSelectedBins(){
 
 if(selectedBins.size === 0) return
 
-if(!confirm("Return selected bins near x:0, y:0 without stacking?")) return
+if(!confirm("Return selected bins to x:0, y:0 staging rows?")) return
 
 const selectedIds = Array.from(selectedBins)
-const spacing = 30
-const columns = 10
-
-const targets = selectedIds.map((id, index)=>{
-const col = index % columns
-const row = Math.floor(index / columns)
-
-return {
-id,
-x: col * spacing,
-y: row * spacing
-}
-})
 
 try{
 
-await Promise.all(targets.map(target=>
+await Promise.all(selectedIds.map(id=>
 fetch("/api/bin/update",{
 method:"POST",
 headers:{'Content-Type':'application/json'},
-body:JSON.stringify({id:target.id,x:target.x,y:target.y})
+body:JSON.stringify({id,x:0,y:0})
 })
 ))
 
-targets.forEach(target=>{
-const bin = bins.find(b=>b.id === target.id)
+selectedIds.forEach(id=>{
+const bin = bins.find(b=>b.id === id)
 if(bin){
-bin.x = target.x
-bin.y = target.y
-}
-
-const marker = map.querySelector(`.marker[data-id="${target.id}"]`)
-if(marker){
-const screen = mapToScreen(target.x,target.y,map)
-marker.style.left = screen.x+"px"
-marker.style.top = screen.y+"px"
+bin.x = 0
+bin.y = 0
 }
 })
 
 selectedBins.clear()
+renderAllMarkers()
 updateList()
 
 }catch(err){
@@ -344,6 +352,7 @@ bin.x = pos.x
 bin.y = pos.y
 }
 
+renderAllMarkers()
 updateList()
 
 dragging = null
@@ -379,8 +388,7 @@ y:pos.y
 
 bins.push(newBin)
 
-createMarker(newBin)
-
+renderAllMarkers()
 updateList()
 
 })
