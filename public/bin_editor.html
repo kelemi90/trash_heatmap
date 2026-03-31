@@ -116,6 +116,7 @@ else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
 <div id="sidebar">
 <h3>Bin Coordinates</h3>
 <div id="bulkActions">
+<button id="selectAllBtn">Select All Bins</button>
 <button id="resetSelectedBtn" disabled>Return Selected To X:0 Y:0</button>
 <button id="clearSelectionBtn" disabled>Clear Selection</button>
 <div id="selectionInfo">0 bins selected</div>
@@ -133,6 +134,7 @@ else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
 
 const map = document.getElementById("map")
 const binList = document.getElementById("binList")
+const selectAllBtn = document.getElementById("selectAllBtn")
 const resetSelectedBtn = document.getElementById("resetSelectedBtn")
 const clearSelectionBtn = document.getElementById("clearSelectionBtn")
 const selectionInfo = document.getElementById("selectionInfo")
@@ -436,6 +438,10 @@ updateSelectionUi()
 }
 
 resetSelectedBtn.addEventListener("click",resetSelectedBins)
+selectAllBtn.addEventListener("click",()=>{
+bins.forEach(b=>selectedBins.add(b.id))
+updateList()
+})
 clearSelectionBtn.addEventListener("click",()=>{
 selectedBins.clear()
 updateList()
