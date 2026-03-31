@@ -99,20 +99,56 @@ async function loadData(){
   if(chartLast) chartLast.destroy()
   if(chartEmpties) chartEmpties.destroy()
 
+  // Keep original minutes for tooltips, but cap displayed values to 240 so the chart stays usable.
+  const originalMinutes = minutes.slice()
+  const displayMinutes = minutes.map(m => (m === null ? 240 : Math.min(m, 240)))
+
+  // create an overlay dataset to mark capped bars (originalMinutes > 240)
+  const cappedData = originalMinutes.map(m => (m !== null && m > 240) ? 240 : null)
+
   chartLast = new Chart(ctxLast, {
     type: 'bar',
     data: {
       labels: labels,
       datasets: [{
         label: 'Minutes since last empty',
-        data: minutes,
+        data: displayMinutes,
         backgroundColor: bgColors
-      }]
+      },
+      // overlay line dataset used only to draw a top marker for capped bars
+      {
+        type: 'line',
+        label: 'capped-markers',
+        data: cappedData,
+        borderColor: 'rgba(0,0,0,0)',
+        backgroundColor: '#000',
+        pointStyle: 'triangle',
+        pointRadius: 7,
+        pointHoverRadius: 9,
+        tension: 0,
+        spanGaps: true,
+        showLine: false,
+        order: 2
+      }
+      ]
     },
     options: {
       responsive: true,
       scales: {
-        y: { beginAtZero: true }
+        y: { beginAtZero: true, max: 240, ticks: { stepSize: 30 } }
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context){
+              const idx = context.dataIndex
+              const real = originalMinutes[idx]
+              if(real === null) return 'Last empty: never'
+              if(real > 240) return `Last empty: ${real} min (>=240 shown)`
+              return `Last empty: ${real} min`
+            }
+          }
+        }
       },
       plugins: { legend: { display: false } }
     }

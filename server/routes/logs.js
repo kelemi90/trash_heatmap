@@ -9,7 +9,9 @@ console.log("[routes/logs] loaded")
 
 const db = new sqlite3.Database("database/trash.db")
 
-const DUPLICATE_WINDOW_SECONDS = 120
+// Wait time to block consecutive logs for the same bin (in seconds)
+// Set to 10 minutes (600 seconds)
+const DUPLICATE_WINDOW_SECONDS = 60 * 10
 
 router.post("/log",(req,res)=>{
 
@@ -49,61 +51,52 @@ invalid_user:true
 	is consistent for logs. */
 const canonicalUser = user.username
 
-/* CHECK LAST BIN LOG */
+/* CHECK LAST BIN LOG (prevent consecutive logs for same bin regardless of user)
+	 We look up the most recent log for the bin (if any) and block a new log
+	 if it occurred within DUPLICATE_WINDOW_SECONDS seconds. */
 
 db.get(
-(`SELECT timestamp FROM logs
-WHERE bin_id=? AND username = ? COLLATE NOCASE
-ORDER BY timestamp DESC
-LIMIT 1`),
-[bin_id, canonicalUser],
-(err,row)=>{
+	`SELECT timestamp, username FROM logs WHERE bin_id=? ORDER BY timestamp DESC LIMIT 1`,
+	[bin_id],
+	(err, row) => {
 
-if(err){
-console.error(err)
-return res.status(500).json({success:false})
-}
+		if (err) {
+			console.error(err)
+			return res.status(500).json({ success: false })
+		}
 
-if(row){
+		if (row) {
+			const last = new Date(row.timestamp).getTime()
+			const now = Date.now()
+			const diff = (now - last) / 1000
+			if (diff < DUPLICATE_WINDOW_SECONDS) {
+				return res.json({
+					success: false,
+					duplicate: true,
+					seconds_remaining: Math.floor(DUPLICATE_WINDOW_SECONDS - diff)
+				})
+			}
+		}
 
-const last = new Date(row.timestamp).getTime()
-const now = Date.now()
+		/* INSERT LOG */
 
-const diff = (now-last)/1000
+		db.run(
+			`INSERT INTO logs (username,bin_id,timestamp) VALUES (?,?,datetime('now'))`,
+			[canonicalUser, bin_id],
+			function (err) {
 
-if(diff < DUPLICATE_WINDOW_SECONDS){
+				if (err) {
+					console.error(err)
+					return res.status(500).json({ success: false })
+				}
 
-return res.json({
-success:false,
-duplicate:true,
-seconds_remaining:Math.floor(DUPLICATE_WINDOW_SECONDS-diff)
-})
+				res.json({ success: true, id: this.lastID })
 
-}
+			}
+		)
 
-}
-
-/* INSERT LOG */
-
-db.run(
-`INSERT INTO logs (username,bin_id,timestamp)
-VALUES (?,?,datetime('now'))`,
-[canonicalUser,bin_id],
-function(err){
-
-if(err){
-console.error(err)
-return res.status(500).json({success:false})
-}
-
-res.json({
-success:true,
-id:this.lastID
-})
-
-})
-
-})
+	}
+)
 
 })
 
