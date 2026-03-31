@@ -20,8 +20,36 @@ function createHeatmap(){
   try{
     if(heatRadiusEl) radius = Math.max(10, Math.min(200, parseInt(heatRadiusEl.value,10) || 40))
   }catch(e){}
+  // ensure overlay matches image size before creating canvas
+  try{ ensureHeatLayerSized() }catch(e){}
 
-  heatmap = h337.create({ container: heatLayer, radius: radius })
+  // remove any existing heatmap canvases so recreating doesn't stack multiple
+  try{
+    Array.from(heatLayer.querySelectorAll('canvas')).forEach(c => c.remove())
+  }catch(e){}
+
+  // Some browsers warn when getImageData is called frequently unless the
+  // canvas 2D context was created with { willReadFrequently: true }.
+  // heatmap.js creates its own canvas/context internally, so we temporarily
+  // monkey-patch HTMLCanvasElement.getContext to force that option during
+  // creation. We restore the original afterwards.
+  try{
+    const origGetContext = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = function(type, opts){
+      try{
+        if(type === '2d'){
+          opts = Object.assign({}, opts, { willReadFrequently: true })
+        }
+      }catch(e){}
+      return origGetContext.call(this, type, opts)
+    }
+    heatmap = h337.create({ container: heatLayer, radius: radius })
+    // restore
+    HTMLCanvasElement.prototype.getContext = origGetContext
+  }catch(e){
+    // fallback: just create normally
+    try{ heatmap = h337.create({ container: heatLayer, radius: radius }) }catch(_){ heatmap = null }
+  }
   // ensure renderer dimensions match the container (heatmap.js internal API)
   try{
     const w = Math.max(1, heatLayer.clientWidth)
