@@ -2,12 +2,22 @@
 
 window.logout = async function(){
   try{
-    await fetch('/api/admin/logout',{ method: 'POST', credentials: 'same-origin' })
+    const res = await fetch('/api/admin/logout',{ method: 'POST', credentials: 'same-origin' })
+    let bodyText = ''
+    try{ bodyText = await res.text() }catch(e){ bodyText = '' }
+    // Try to parse JSON for debugging
+    try{
+      const json = JSON.parse(bodyText || '{}')
+      console.info('logout response', res.status, json)
+    }catch(e){
+      console.info('logout response', res.status, 'body:', bodyText)
+    }
   }catch(e){
     console.warn('Logout request failed', e)
   }
-  // Redirect to login regardless
-  // Redirect to dashboard after logout
+
+  // After logout, refresh navbar state then navigate to dashboard
+  try{ if(window.adjustNavbarAuth) await window.adjustNavbarAuth() }catch(e){}
   window.location = '/dashboard.html'
 }
 
@@ -33,7 +43,17 @@ window.markActiveNav = function(){
 window.adjustNavbarAuth = async function(){
   try{
     const res = await fetch('/api/admin/check',{ credentials: 'same-origin' })
-    const data = await res.json()
+    let data = { logged: false }
+    try{
+      data = await res.json()
+    }catch(e){
+      // If the response wasn't JSON (redirect/html), log for debugging and treat as logged:false
+      try{
+        const txt = await res.text()
+        console.info('adjustNavbarAuth: non-JSON response', res.status, txt.substring(0,200))
+      }catch(_){ }
+      data = { logged: false }
+    }
     const nav = document.querySelector('.nav-links')
     const navRight = document.querySelector('.nav-right')
 
