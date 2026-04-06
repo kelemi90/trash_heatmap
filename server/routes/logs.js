@@ -29,10 +29,12 @@ function parseSqlTimestamp(ts){
 
 router.post("/log",(req,res)=>{
 
-const {username, bin_id} = req.body
+const username = req.body.username
+const bin_id = parseInt(req.body.bin_id, 10) || null
 
 if(!username || !bin_id){
 
+console.warn(`[logs/post] Missing username or bin_id. username=${username}, bin_id=${bin_id}`)
 return res.json({
 success:false,
 error:"Missing username or bin_id"
@@ -70,7 +72,7 @@ const canonicalUser = user.username
 	 if it occurred within DUPLICATE_WINDOW_SECONDS seconds. */
 
 db.get(
-	`SELECT timestamp, username FROM logs WHERE bin_id=? ORDER BY timestamp DESC LIMIT 1`,
+	`SELECT timestamp, username FROM logs WHERE bin_id = ? ORDER BY timestamp DESC LIMIT 1`,
 	[bin_id],
 	(err, row) => {
 
