@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>QR Print — 6cm squares</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:16px;color:#222}
+    .controls{margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    input[type="number"], input[type="text"]{padding:6px;border:1px solid #ccc;border-radius:4px}
+    button{padding:8px 12px;border-radius:6px;border:1px solid #999;background:#f6f6f6;cursor:pointer}
+
+    /* Grid of QR cards — each card prints as a 6cm x 6cm square */
+    .grid{display:flex;flex-wrap:wrap;gap:6mm}
+    .qr-card{width:6cm;height:6cm;box-sizing:border-box;border:1px dashed #ddd;display:flex;align-items:center;justify-content:center}
+    .qr-card canvas{width:100%;height:100%;display:block}
+
+    /* Print layout: remove margins and page decorations, ensure 1:1 scale */
+    @media print{
+      @page{size: auto; margin: 0}
+      html,body{height:100%;margin:0;padding:0}
+      .controls{display:none}
+      .grid{gap:0}
+      .qr-card{border:none}
+    }
+  </style>
+</head>
+<body>
+  <h2>QR Print — 6cm squares</h2>
+  <p>Generate QR codes sized to 6cm × 6cm. For best results set print scaling to 100% (no "fit to page") and disable headers/footers.</p>
+
+  <div class="controls">
+    <label>Server URL <input id="server" type="text" value="https://tyhjennys.dy.fi"></label>
+    <label>Start <input id="start" type="number" value="1" min="1" style="width:70px"></label>
+    <label>Count <input id="count" type="number" value="10" min="1" style="width:80px"></label>
+    <label>DPI <input id="dpi" type="number" value="300" min="72" style="width:80px"></label>
+    <button id="generate">Generate</button>
+    <button id="print">Print</button>
+  </div>
+
+  <div id="grid" class="grid"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script>
+    // Utility: convert desired physical size (cm) to pixels for a target DPI
+    function cmToPixels(cm, dpi){
+      const inches = cm / 2.54
+      return Math.round(inches * dpi)
+    }
+
+    function clearGrid(){
+      const grid = document.getElementById('grid')
+      grid.innerHTML = ''
+    }
+
+    function generateGrid(){
+      const server = document.getElementById('server').value.trim().replace(/\/+$/,'')
+      const start = parseInt(document.getElementById('start').value,10) || 1
+      const count = parseInt(document.getElementById('count').value,10) || 1
+      const dpi = parseInt(document.getElementById('dpi').value,10) || 300
+
+      clearGrid()
+
+      // compute pixel size for canvas using target DPI
+      const px = cmToPixels(6, dpi) // for 6 cm
+
+      for(let i=0;i<count;i++){
+        const bin = start + i
+        const url = server + '/bin.html?bin=' + bin
+
+        const card = document.createElement('div')
+        card.className = 'qr-card'
+
+        // create high-resolution canvas for printing
+        const canvas = document.createElement('canvas')
+        // set internal pixel size for target DPI
+        canvas.width = px
+        canvas.height = px
+        // CSS will scale canvas to 6cm via .qr-card rules
+        canvas.style.width = '100%'
+        canvas.style.height = '100%'
+
+        card.appendChild(canvas)
+
+        // label below (not printed if headers disabled) — optional
+        const label = document.createElement('div')
+        label.style.fontSize = '12px'
+        label.style.textAlign = 'center'
+        label.style.marginTop = '4px'
+        label.innerText = 'BIN ' + bin
+
+        // generate QR into canvas (use QRCode lib)
+        // We draw a white background first for better thermal printing
+        const ctx = canvas.getContext('2d')
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0,0,canvas.width,canvas.height)
+
+        QRCode.toCanvas(canvas, url, { width: canvas.width, margin: 0, color: { dark: '#000000', light: '#ffffff' } }, function (error) {
+          if(error) console.error(error)
+        })
+
+        document.getElementById('grid').appendChild(card)
+      }
+    }
+
+    document.getElementById('generate').addEventListener('click', generateGrid)
+    document.getElementById('print').addEventListener('click', ()=>{
+      // Wait a moment for canvases to render
+      setTimeout(()=> window.print(), 200)
+    })
+
+    // auto-generate small set on load
+    window.addEventListener('load', ()=>{
+      generateGrid()
+    })
+  </script>
+</body>
+</html>

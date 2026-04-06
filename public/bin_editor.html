@@ -3,10 +3,6 @@
 
 <head>
 
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#222222">
-<link rel="manifest" href="/manifest.json">
-
 <title>Bin Editor</title>
 
 <link rel="stylesheet" href="/css/style.css">
@@ -35,32 +31,6 @@ border-bottom:1px solid #eee;
 font-size:13px;
 }
 
-#bulkActions{
-display:flex;
-flex-direction:column;
-gap:8px;
-margin-bottom:10px;
-}
-
-#bulkActions button{
-padding:6px 8px;
-}
-
-#selectionInfo{
-font-size:12px;
-color:#555;
-}
-
-.bin-row{
-display:flex;
-align-items:center;
-gap:6px;
-}
-
-.bin-row label{
-cursor:pointer;
-}
-
 .map-container{
 position:relative;
 }
@@ -84,11 +54,6 @@ justify-content:center;
 transform:translate(-50%,-50%);
 cursor:pointer;
 user-select:none;
-}
-
-.marker.selected{
-background:#0057a8;
-box-shadow:0 0 0 2px rgba(255,255,255,0.9), 0 0 0 4px rgba(0,87,168,0.45);
 }
 
 </style>
@@ -119,12 +84,6 @@ else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
 
 <div id="sidebar">
 <h3>Bin Coordinates</h3>
-<div id="bulkActions">
-<button id="selectAllBtn">Select All Bins</button>
-<button id="resetSelectedBtn" disabled>Return Selected To X:0 Y:0</button>
-<button id="clearSelectionBtn" disabled>Clear Selection</button>
-<div id="selectionInfo">0 bins selected</div>
-</div>
 <div id="binList"></div>
 </div>
 
@@ -136,30 +95,13 @@ else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
 
 <script>
 
+let topIndex = 0
+
 const map = document.getElementById("map")
 const binList = document.getElementById("binList")
-const selectAllBtn = document.getElementById("selectAllBtn")
-const resetSelectedBtn = document.getElementById("resetSelectedBtn")
-const clearSelectionBtn = document.getElementById("clearSelectionBtn")
-const selectionInfo = document.getElementById("selectionInfo")
 
 let dragging = null
 let bins = []
-const selectedBins = new Set()
-
-const STAGING_COLUMNS = 10
-const STAGING_MARKER_SIZE = 22
-const STAGING_GAP = 4
-
-function clearEditorMarkers(){
-document.querySelectorAll("#map .marker").forEach(m=>m.remove())
-}
-
-// Backward-compatible alias for older scripts that still call mgt.clearMarks().
-if(!window.mgt) window.mgt = {}
-if(typeof window.mgt.clearMarks !== "function"){
-window.mgt.clearMarks = clearEditorMarkers
-}
 
 /* LOAD BINS */
 
@@ -167,7 +109,7 @@ fetch("/api/bins")
 .then(r=>r.json())
 .then(data=>{
 bins = data.sort((a,b)=>a.id - b.id)
-renderAllMarkers()
+bins.forEach(b=>createMarker(b))
 updateList()
 })
 
@@ -181,7 +123,7 @@ marker.innerText = bin.id
 
 let x,y
 
-if(!isStagedBin(bin)){
+if(bin.x && bin.y){
 
 const screen = mapToScreen(bin.x,bin.y,map)
 x = screen.x
@@ -189,10 +131,19 @@ y = screen.y
 
 }else{
 
-const slot = getStagingSlot(bin.id)
+const markerSize = 22
+const binsPerRow = 10
 
-x = slot.col * (STAGING_MARKER_SIZE + STAGING_GAP) + STAGING_MARKER_SIZE
-y = slot.row * (STAGING_MARKER_SIZE + STAGING_GAP) + STAGING_MARKER_SIZE
+const col = topIndex % binsPerRow
+const row = Math.floor(topIndex / binsPerRow)
+
+
+const gap = 2
+
+x = col * (markerSize + gap) + markerSize
+y = row * (markerSize + gap) + markerSize
+
+topIndex++
 
 }
 
@@ -200,7 +151,6 @@ marker.style.left = x+"px"
 marker.style.top = y+"px"
 
 marker.dataset.id = bin.id
-if(selectedBins.has(bin.id)) marker.classList.add("selected")
 
 marker.addEventListener("mousedown", startDrag)
 
@@ -220,87 +170,11 @@ body:JSON.stringify({id:bin.id})
 marker.remove()
 
 bins = bins.filter(b=>b.id != bin.id)
-selectedBins.delete(bin.id)
 
-renderAllMarkers()
 updateList()
 })
 
 map.appendChild(marker)
-
-}
-
-function isStagedBin(bin){
-const hasCoords = bin.x !== null && bin.x !== undefined && bin.y !== null && bin.y !== undefined
-if(!hasCoords) return true
-return Number(bin.x) === 0 && Number(bin.y) === 0
-}
-
-function getStagingSlot(binId){
-const stagedIds = bins
-.filter(isStagedBin)
-.map(b=>b.id)
-.sort((a,b)=>a-b)
-
-const index = Math.max(0, stagedIds.indexOf(binId))
-const col = index % STAGING_COLUMNS
-const row = Math.floor(index / STAGING_COLUMNS)
-return {col,row}
-}
-
-function renderAllMarkers(){
-clearEditorMarkers()
-bins.forEach(b=>createMarker(b))
-}
-
-function updateSelectionUi(){
-
-const count = selectedBins.size
-
-selectionInfo.innerText = count+" bins selected"
-resetSelectedBtn.disabled = count === 0
-clearSelectionBtn.disabled = count === 0
-
-document.querySelectorAll(".marker").forEach(marker=>{
-const markerId = Number(marker.dataset.id)
-marker.classList.toggle("selected", selectedBins.has(markerId))
-})
-
-}
-
-async function resetSelectedBins(){
-
-if(selectedBins.size === 0) return
-
-if(!confirm("Return selected bins to x:0, y:0 staging rows?")) return
-
-const selectedIds = Array.from(selectedBins)
-
-try{
-
-await Promise.all(selectedIds.map(id=>
-fetch("/api/bin/update",{
-method:"POST",
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({id,x:0,y:0})
-})
-))
-
-selectedIds.forEach(id=>{
-const bin = bins.find(b=>b.id === id)
-if(bin){
-bin.x = 0
-bin.y = 0
-}
-})
-
-selectedBins.clear()
-renderAllMarkers()
-updateList()
-
-}catch(err){
-alert("Failed to reset selected bins")
-}
 
 }
 
@@ -358,7 +232,6 @@ bin.x = pos.x
 bin.y = pos.y
 }
 
-renderAllMarkers()
 updateList()
 
 dragging = null
@@ -394,7 +267,8 @@ y:pos.y
 
 bins.push(newBin)
 
-renderAllMarkers()
+createMarker(newBin)
+
 updateList()
 
 })
@@ -413,46 +287,18 @@ bins
 
 let row=document.createElement("div")
 
-row.className = "bin-row"
-
-const checkbox = document.createElement("input")
-checkbox.type = "checkbox"
-checkbox.checked = selectedBins.has(b.id)
-checkbox.addEventListener("change",()=>{
-if(checkbox.checked) selectedBins.add(b.id)
-else selectedBins.delete(b.id)
-updateSelectionUi()
-})
-
-const label = document.createElement("label")
-label.innerText =
+row.innerText =
 "Bin "+b.id+
 " | X:"+Number(b.x).toFixed(2)+
 " Y:"+Number(b.y).toFixed(2)
-
-row.appendChild(checkbox)
-row.appendChild(label)
 
 binList.appendChild(row)
 
 })
 
-updateSelectionUi()
-
 }
-
-resetSelectedBtn.addEventListener("click",resetSelectedBins)
-selectAllBtn.addEventListener("click",()=>{
-bins.forEach(b=>selectedBins.add(b.id))
-updateList()
-})
-clearSelectionBtn.addEventListener("click",()=>{
-selectedBins.clear()
-updateList()
-})
 
 </script>
 
 </body>
-<script src="/js/pwa.js"></script>
 </html>
