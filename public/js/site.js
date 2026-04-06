@@ -53,10 +53,27 @@ window.adjustNavbarAuth = async function(){
       if(navRight){
         navRight.innerHTML = `<a href="/admin_login.html" class="login-btn">Login</a>`
       }
+
+      // Ensure login is reachable on small screens: nav-right is hidden by CSS
+      // so also add a login link into the drawer (.nav-links) when viewport is narrow.
+      if(nav){
+        // remove any leftover login-btn in nav-links first
+        const existing = nav.querySelectorAll('a.login-btn')
+        existing.forEach(e=>e.remove())
+        if(window.matchMedia && window.matchMedia('(max-width:800px)').matches){
+          const a = document.createElement('a')
+          a.href = '/admin_login.html'
+          a.className = 'login-btn'
+          a.textContent = 'Login'
+          nav.appendChild(a)
+        }
+      }
     }else{
       // show admin links
       if(nav){
         nav.querySelectorAll('a').forEach(a=>{ a.style.display = '' })
+        // remove any login links that may have been injected into nav-links
+        nav.querySelectorAll('a.login-btn').forEach(a=>a.remove())
       }
 
       // show logout button
