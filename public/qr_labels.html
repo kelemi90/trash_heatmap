@@ -258,30 +258,52 @@ const w = window.open('', '_blank', 'width=400,height=600')
 w.document.write(`<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
 <style>
-@page{size:6cm 6cm;margin:0;}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:Arial,sans-serif;background:white;}
-.label{
-width:6cm;height:6cm;
-padding:3mm;
-page-break-after:always;
-break-after:page;
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-text-align:center;
+@page{
+  size: 60mm 60mm;
+  margin: 0;
 }
-.label img{width:4.4cm;height:4.4cm;}
-.bin{font-size:12pt;font-weight:bold;margin-top:1.5mm;}
-.code{font-size:7pt;color:#666;margin-top:0.5mm;}
-.scan{font-size:7pt;color:#444;margin-top:0.5mm;}
+html, body{
+  width: 60mm;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: white;
+}
+*{ box-sizing: border-box; }
+.label{
+  width: 60mm;
+  height: 60mm;
+  padding: 3mm;
+  page-break-after: always;
+  break-after: page;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.label:last-child{ page-break-after: avoid; break-after: avoid; }
+.label img{ width: 44mm; height: 44mm; }
+.bin{ font-size: 12pt; font-weight: bold; margin-top: 1.5mm; }
+.code{ font-size: 7pt; color: #666; margin-top: 0.5mm; }
+.scan{ font-size: 7pt; color: #444; margin-top: 0.5mm; }
 </style></head><body>
 ${html}
+<script>
+var imgs = document.images;
+var total = imgs.length;
+if(total === 0){ window.print(); }
+else {
+  var loaded = 0;
+  function onImg(){ loaded++; if(loaded >= total) window.print(); }
+  for(var i=0;i<total;i++){
+    if(imgs[i].complete) onImg();
+    else { imgs[i].onload = onImg; imgs[i].onerror = onImg; }
+  }
+}
+<\/script>
 </body></html>`)
 w.document.close()
-w.focus()
-w.onload = function(){ w.print() }
 }
 
 </script>
