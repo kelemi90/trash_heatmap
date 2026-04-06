@@ -6,6 +6,7 @@
 <title>QR Label Generator</title>
 
 <link rel="stylesheet" href="/css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 
@@ -187,6 +188,8 @@ else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
 
 <button onclick="printStrip()">Print (Strip / Thermal)</button>
 
+<button onclick="downloadPDF()">Download PDF (Thermal)</button>
+
 <span id="status"></span>
 
 </div>
@@ -242,6 +245,48 @@ console.error(err)
 
 }
 
+}
+
+async function downloadPDF(){
+const labels = document.getElementById('labels')
+if(!labels || !labels.children.length){
+alert('Generate labels first')
+return
+}
+const status = document.getElementById('status')
+status.innerText = 'Building PDF...'
+
+try{
+const { jsPDF } = window.jspdf
+// 60mm x 60mm pages, no margin
+const doc = new jsPDF({ unit:'mm', format:[60,60], orientation:'portrait' })
+
+const items = Array.from(labels.querySelectorAll('.label'))
+for(let i=0;i<items.length;i++){
+if(i > 0) doc.addPage([60,60],'portrait')
+const img = items[i].querySelector('img')
+const binEl = items[i].querySelector('.bin')
+const scanEl = items[i].querySelector('.scan')
+// QR image: 44mm x 44mm, centred horizontally, 3mm from top
+doc.addImage(img.src, 'PNG', 8, 3, 44, 44)
+// Bin label
+doc.setFontSize(12)
+doc.setFont('helvetica','bold')
+const binText = binEl ? binEl.innerText : ''
+doc.text(binText, 30, 50, {align:'center'})
+// Scan text
+doc.setFontSize(7)
+doc.setFont('helvetica','normal')
+const scanText = scanEl ? scanEl.innerText : ''
+doc.text(scanText, 30, 55, {align:'center'})
+}
+
+doc.save('qr-labels-60mm.pdf')
+status.innerText = 'PDF downloaded — open it and print at actual size'
+}catch(err){
+status.innerText = 'PDF generation failed'
+console.error(err)
+}
 }
 
 function printStrip(){
