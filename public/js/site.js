@@ -68,3 +68,20 @@ window.adjustNavbarAuth = async function(){
     // ignore network errors
   }
 }
+
+// Toggle mobile navigation drawer
+window.toggleMobileNav = function(){
+  try{
+    document.body.classList.toggle('nav-open')
+  }catch(e){}
+}
+
+// Close mobile nav when clicking links (delegated)
+document.addEventListener('click', (ev)=>{
+  try{
+    const a = ev.target.closest && ev.target.closest('.nav-links a')
+    if(a && document.body.classList.contains('nav-open')){
+      document.body.classList.remove('nav-open')
+    }
+  }catch(e){}
+})
