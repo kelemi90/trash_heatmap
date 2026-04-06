@@ -82,6 +82,16 @@ color:#666;
 margin:5mm;
 }
 
+/* Strip mode: tell the browser the page is 6cm wide (thermal roll) */
+@page strip-page{
+size:6cm auto;
+margin:0;
+}
+
+body.strip-mode{
+page:strip-page;
+}
+
 @media print{
 
 body{
@@ -106,6 +116,7 @@ display:none;
 display:none;
 }
 
+/* --- grid/sheet mode (default) --- */
 .grid{
 display:flex;
 flex-wrap:wrap;
@@ -150,6 +161,20 @@ margin-top:0.5mm;
 color:#444;
 }
 
+/* --- strip mode (thermal label printer) --- */
+body.strip-mode .grid{
+display:block;
+}
+
+body.strip-mode .label{
+width:6cm;
+height:6cm;
+border:none;
+border-bottom:0.5px dashed #aaa;
+page-break-after:always;
+break-after:page;
+}
+
 }
 
 </style>
@@ -182,7 +207,9 @@ else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
 
 <button onclick="generate()">Generate All 55</button>
 
-<button onclick="window.print()">Print</button>
+<button onclick="window.print()">Print (Sheet)</button>
+
+<button onclick="printStrip()">Print (Strip / Thermal)</button>
 
 <span id="status"></span>
 
@@ -239,6 +266,12 @@ console.error(err)
 
 }
 
+}
+
+function printStrip(){
+document.body.classList.add('strip-mode')
+window.print()
+document.body.classList.remove('strip-mode')
 }
 
 </script>
