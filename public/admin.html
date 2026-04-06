@@ -1,4 +1,370 @@
 <!DOCTYPE html>
+<html>
+<head>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#222222">
+<link rel="manifest" href="/manifest.json">
+
+<title>Admin - Trash Heatmap</title>
+
+<link rel="stylesheet" href="/css/style.css">
+
+</head>
+
+<body>
+
+<div id="navbar"></div>
+
+<main style="padding:16px;max-width:980px;margin:0 auto">
+
+<h1>Admin - Trash Heatmap</h1>
+
+<div class="panel">
+<h2>Add User</h2>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <input id="username" placeholder="username">
+    <button onclick="addUser()">Add</button>
+    <button onclick="logout()">Logout</button>
+</div>
+<div style="margin-top:10px">
+    <label for="nicknameInput">Your nickname (required for resets):</label>
+    <input id="nicknameInput" placeholder="enter nickname" style="margin-left:8px;padding:6px;">
+    <button onclick="setNickname()">Set nickname</button>
+    <div id="currentNickname" style="display:inline-block;margin-left:12px;color:#333"></div>
+</div>
+</div>
+
+<div class="panel">
+<h2>Workers</h2>
+<div id="users"></div>
+</div>
+
+<div class="panel" id="reset-bins-panel">
+<h2>Reset All Bin Positions</h2>
+<p style="color:#555;margin-bottom:10px">Moves every bin back to x:0, y:0 (the staging area). Current positions are backed up first.</p>
+<button class="btn-danger" onclick="resetAllBins()">Reset All Bins to Origin</button>
+<div id="resetBinsResult" style="padding:8px;margin-top:8px;display:none;border-radius:6px"></div>
+</div>
+
+<div class="panel" id="logs">
+<h2>Logs</h2>
+
+<div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <label for="filterBinId" style="white-space:nowrap">Filter by Bin ID:</label>
+    <input id="filterBinId" placeholder="leave empty for all" style="width:140px;padding:6px;">
+    <button onclick="loadLogs()">Refresh</button>
+</div>
+
+<div id="logsTable" style="overflow-x:auto;margin-bottom:16px">
+    <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <thead>
+            <tr style="background:#f0f0f0;text-align:left">
+                <th style="padding:8px;border-bottom:1px solid #ddd">#</th>
+                <th style="padding:8px;border-bottom:1px solid #ddd">Bin ID</th>
+                <th style="padding:8px;border-bottom:1px solid #ddd">User</th>
+                <th style="padding:8px;border-bottom:1px solid #ddd">Timestamp</th>
+            </tr>
+        </thead>
+        <tbody id="logsBody">
+            <tr><td colspan="4" style="padding:8px;color:#999">Loading…</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<hr style="margin:16px 0">
+<h3 style="margin-bottom:8px">Reset Logs</h3>
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <label for="resetBinId" style="white-space:nowrap">Bin ID (optional):</label>
+    <input id="resetBinId" placeholder="leave empty to clear all" style="width:140px;padding:6px;">
+    <button id="resetBtn" class="btn-danger" onclick="resetLogs()">Reset Logs</button>
+    <small style="color:#666">Backups saved to <code>database/backups/</code></small>
+</div>
+<div id="resetResult" style="padding:8px;margin-top:8px;display:none;border-radius:6px"></div>
+</div>
+
+</main>
+
+<script>
+// fetch the shared navbar and initialize nav state
+fetch('/components/navbar.html')
+  .then(r=>r.text())
+  .then(html=>{
+    document.getElementById('navbar').innerHTML = html
+    if(window.markActiveNav) window.markActiveNav()
+    else setTimeout(()=>{ if(window.markActiveNav) window.markActiveNav() },200)
+    if(window.adjustNavbarAuth) window.adjustNavbarAuth()
+    else setTimeout(()=>{ if(window.adjustNavbarAuth) window.adjustNavbarAuth() },200)
+  })
+</script>
+
+<script src="/js/site.js"></script>
+
+<script>
+/* LOGIN OPTION */
+
+async function checkLogin(){
+
+const res = await fetch("/api/admin/check",{
+credentials:"same-origin"
+})
+
+const data = await res.json()
+
+if(!data.logged){
+window.location="/admin_login.html"
+return false
+}
+
+    // show current nickname if provided
+    if(data.username){
+        const el = document.getElementById('currentNickname')
+        if(el) el.innerText = `Nickname: ${data.username}`
+    }
+
+    return true
+
+}
+
+async function setNickname(){
+
+    const nick = document.getElementById('nicknameInput').value.trim()
+    if(!nick){
+        alert('Enter a nickname')
+        return
+    }
+
+    if(nick.toLowerCase() === 'buildcat'){
+        alert('Nickname cannot be "Buildcat"')
+        return
+    }
+
+    try{
+        const res = await fetch('/api/admin/set-nickname',{
+            method:'POST',
+            credentials:'same-origin',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ nickname: nick })
+        })
+
+        const data = await res.json()
+        if(res.ok && data.success){
+            document.getElementById('currentNickname').innerText = `Nickname: ${data.username}`
+            document.getElementById('nicknameInput').value = ''
+            // clear any previous result
+            const out = document.getElementById('resetResult')
+            out.style.display = 'none'
+        }else{
+            alert('Failed to set nickname: ' + (data && data.error ? data.error : JSON.stringify(data)))
+        }
+
+    }catch(e){
+        console.error(e)
+        alert('Failed to set nickname: ' + e)
+    }
+
+}
+
+/* LOAD USERS */
+
+async function loadUsers(){
+
+const res = await fetch("/api/users",{
+cache:"no-store",
+credentials:"same-origin"
+})
+
+const users = await res.json()
+
+const container = document.getElementById("users")
+container.innerHTML=""
+users.forEach(u=>{
+
+const div=document.createElement("div")
+div.className="user"
+
+div.innerHTML=`
+<span>${u.username}</span>
+<button onclick="deleteUser(${u.id})">Delete</button>
+`
+
+container.appendChild(div)
+
+})
+
+}
+
+/* ADD USERS */
+
+async function addUser(){
+    const username=document.getElementById("username").value.trim()
+    if(!username){
+        alert("Enter username")
+        return
+    }
+
+    const res = await fetch("/api/users",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        credentials:"same-origin",
+        body:JSON.stringify({username})
+    })
+
+    const data = await res.json()
+
+    if(data.success){
+        document.getElementById("username").value=""
+        await loadUsers() 
+    }else{
+        alert("User exists")
+    }
+
+}
+
+/* DELETE USER */
+
+async function deleteUser(id){
+
+if(!confirm("Delete user?")) return
+
+await fetch("/api/users/"+id,{
+method:"DELETE",
+credentials:"same-origin"
+})
+
+loadUsers()
+
+}
+
+/* START PAGE */
+
+(async () => {
+    await checkLogin()
+    await loadUsers()
+    await loadLogs()
+})()
+
+/* RESET ALL BIN POSITIONS (admin) */
+async function resetAllBins(){
+    if(!confirm('Move ALL bins to x:0, y:0? Current positions will be backed up first.')) return
+
+    try{
+        const res = await fetch('/api/admin/reset-all-bins', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' }
+        })
+
+        if(res.status === 401) return window.location = '/admin_login.html'
+
+        const data = await res.json()
+        const out = document.getElementById('resetBinsResult')
+        out.style.display = 'block'
+        if(data && data.success){
+            out.style.background = '#e6ffed'
+            out.style.color = '#0a640a'
+            out.innerHTML = `All bins reset OK.<br><strong>Updated:</strong> ${data.updated} bins<br><strong>Backup:</strong> ${data.backup}`
+        }else{
+            out.style.background = '#ffecec'
+            out.style.color = '#a33'
+            out.innerText = 'Reset failed: ' + (data && data.error ? data.error : JSON.stringify(data))
+        }
+    }catch(e){
+        console.error(e)
+        const out = document.getElementById('resetBinsResult')
+        out.style.display = 'block'
+        out.style.background = '#ffecec'
+        out.style.color = '#a33'
+        out.innerText = 'Reset failed: ' + e
+    }
+}
+
+/* LOAD LOGS */
+async function loadLogs(){
+    const binInput = document.getElementById('filterBinId') ? document.getElementById('filterBinId').value.trim() : ''
+    const url = binInput ? `/api/logs?bin_id=${encodeURIComponent(binInput)}` : '/api/logs'
+    const tbody = document.getElementById('logsBody')
+    if(tbody) tbody.innerHTML = '<tr><td colspan="4" style="padding:8px;color:#999">Loading…</td></tr>'
+    try{
+        const res = await fetch(url, { credentials: 'same-origin' })
+        const rows = await res.json()
+        if(!Array.isArray(rows) || rows.length === 0){
+            if(tbody) tbody.innerHTML = '<tr><td colspan="4" style="padding:8px;color:#999">No logs found.</td></tr>'
+            return
+        }
+        if(tbody) tbody.innerHTML = rows.map((r, i) => `
+            <tr style="background:${i%2===0?'#fff':'#fafafa'}">
+                <td style="padding:6px 8px;border-bottom:1px solid #eee">${r.id ?? i+1}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid #eee">${r.bin_id ?? ''}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid #eee">${r.username ?? ''}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid #eee">${r.timestamp ?? ''}</td>
+            </tr>`).join('')
+    }catch(e){
+        if(tbody) tbody.innerHTML = `<tr><td colspan="4" style="padding:8px;color:#a33">Failed to load logs: ${e}</td></tr>`
+    }
+}
+
+/* RESET LOGS (admin) */
+async function resetLogs(){
+    const binInput = document.getElementById('resetBinId') ? document.getElementById('resetBinId').value.trim() : ''
+    const bin_id = binInput ? parseInt(binInput,10) : null
+
+    const confirmMsg = bin_id ? `Are you sure you want to delete all logs for bin ${bin_id}? This will create a backup first.` : 'Are you sure you want to delete ALL logs? This will create a backup first.'
+    if(!confirm(confirmMsg)) return
+
+    const body = bin_id ? { bin_id } : {}
+
+    try{
+        const res = await fetch('/api/admin/reset-logs', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+
+        if(res.status === 401){
+            // unauthorized - redirect to login
+            const rr = document.getElementById('resetResult')
+            if(rr){
+                rr.style.display = 'block'
+                rr.style.background = '#ffecec'
+                rr.style.color = '#a33'
+                rr.innerText = 'Unauthorized — please login as admin'
+            }
+            return window.location = '/admin_login.html'
+        }
+
+        const data = await res.json()
+        const out = document.getElementById('resetResult')
+        out.style.display = 'block'
+        if(data && data.success){
+            out.style.background = '#e6ffed'
+            out.style.color = '#0a640a'
+            out.innerHTML = `Logs reset OK.<br><strong>Backup:</strong> ${data.backup}<br><strong>Deleted:</strong> ${data.deleted || 'unknown'}`
+        }else{
+            out.style.background = '#ffecec'
+            out.style.color = '#a33'
+            out.innerText = 'Reset failed: ' + (data && data.error ? data.error : JSON.stringify(data))
+        }
+    }catch(e){
+        console.error(e)
+        const out = document.getElementById('resetResult')
+        out.style.display = 'block'
+        out.style.background = '#ffecec'
+        out.style.color = '#a33'
+        out.innerText = 'Reset failed: ' + e
+    }
+}
+
+</script>
+
+<script src="/js/pwa.js"></script>
+
+</body>
+</html>
+<!DOCTYPE html>
 body{
     font-family:Arial;
     margin:40px;
