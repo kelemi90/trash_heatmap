@@ -69,6 +69,18 @@ position:relative;
 display:inline-block;
 }
 
+/* Mobile-friendly adjustments */
+@media (max-width: 800px){
+	#layout{flex-direction:column}
+	#sidebar{width:100%;height:auto}
+	.map-container{margin-left:0}
+	.marker{width:20px;height:20px}
+	.nav-links a{margin:0 6px}
+}
+
+/* Ensure interactive controls are large enough for touch */
+button, input, select { min-height:40px; }
+
 .map-container img{
 width:100%;
 display:block;
