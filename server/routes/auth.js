@@ -56,9 +56,30 @@ router.post('/admin/set-nickname', (req, res) => {
 
 router.post("/admin/logout",(req,res)=>{
 
+// Attempt to destroy the server session and clear the cookie with
+// the same attributes used when creating it. Clearing with matching
+// domain/path/secure flags reduces cases where the browser keeps an
+// existing cookie because attributes differ.
+const sid = req.sessionID
 req.session.destroy((err)=>{
-	// Clear session cookie in the browser to ensure logout on client side
-	try{ res.clearCookie('connect.sid') }catch(e){}
+	try{
+		const cookieOptions = {
+			path: '/',
+			httpOnly: true,
+			sameSite: 'lax'
+		}
+		// mirror secure flag logic used in server/session setup
+		if(process.env.NODE_ENV === 'production' && process.env.PUBLIC_PROTOCOL === 'https'){
+			cookieOptions.secure = true
+		}
+		// If PUBLIC_HOST is set, explicitly clear the cookie for that domain
+		if(process.env.PUBLIC_HOST) cookieOptions.domain = process.env.PUBLIC_HOST
+
+		res.clearCookie('connect.sid', cookieOptions)
+	}catch(e){}
+
+	try{ console.log(`[auth/logout] pid=${process.pid} destroyed sessionID=${sid} err=${err ? String(err) : 'none'}`) }catch(e){}
+
 	if(err) return res.status(500).json({success:false,error:String(err)})
 	res.json({success:true})
 })

@@ -6,7 +6,23 @@ window.logout = async function(){
   }catch(e){
     console.warn('Logout request failed', e)
   }
-  // Redirect to login regardless
+  // Best-effort client-side cleanup: unregister service workers, clear caches
+  // and clear localStorage that might hold a cached "logged-in" state.
+  try{
+    // unregister all service workers for this origin
+    if(navigator && navigator.serviceWorker && typeof navigator.serviceWorker.getRegistrations === 'function'){
+      const regs = await navigator.serviceWorker.getRegistrations()
+      for(const r of regs) try{ await r.unregister() }catch(e){}
+    }
+    // clear caches (if any)
+    if(window.caches && typeof window.caches.keys === 'function'){
+      const keys = await caches.keys()
+      await Promise.all(keys.map(k => caches.delete(k)))
+    }
+    // clear localStorage (best-effort; avoid throwing)
+    try{ localStorage.clear() }catch(e){}
+  }catch(e){ /* ignore cleanup errors */ }
+
   // Redirect to dashboard after logout
   window.location = '/dashboard.html'
 }
