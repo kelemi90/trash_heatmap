@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Print QR Labels (6cm)</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* Each label is exactly 6cm x 6cm when printed */
+    .sheet{ display:flex; flex-wrap:wrap; gap:6mm; align-items:flex-start }
+    .label{
+      width:6cm; height:6cm; box-sizing:border-box;
+      display:flex; align-items:center; justify-content:center;
+      border: 1px solid transparent; /* for debugging, set to #ddd */
+      page-break-inside: avoid;
+    }
+    .label canvas{ width:6cm; height:6cm; display:block }
+
+    /* Print rules: remove margins/headers and make each label printable */
+    @media print{
+      @page { size: auto; margin: 0 }
+      html,body{ height:100%; margin:0; padding:0 }
+      .controls{ display:none }
+      .sheet{ gap:0 }
+    }
+  </style>
+</head>
+<body>
+
+<div class="controls" style="padding:12px;background:#fff;">
+  <label>Server URL: <input id="server" value="https://tyhjennys.dy.fi" style="width:260px"></label>
+  <label style="margin-left:12px">Start: <input id="start" type="number" value="1" style="width:80px"></label>
+  <label style="margin-left:12px">Count: <input id="count" type="number" value="12" style="width:80px"></label>
+  <button id="generate">Generate</button>
+  <button id="print">Print</button>
+  <small style="display:block;margin-top:6px;color:#444">Tips: In print dialog set Scale to 100%, margins to none, enable background graphics. For thermal label printer, set paper width to 60mm (6cm).</small>
+</div>
+
+<div id="sheet" class="sheet" style="padding:12px;background:#f8f8f8"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script>
+function cmToPx(cm){
+  // CSS 1cm equals 96px/2.54 at 96dpi -> ~37.7952755906 px per cm
+  return Math.round(cm * 37.7952755906)
+}
+
+function makeLabel(url){
+  const div = document.createElement('div')
+  div.className = 'label'
+  const canvas = document.createElement('canvas')
+  // create a larger canvas for crisp print (use 300 DPI equivalent)
+  const dpi = 300
+  const inches = 6 / 2.54
+  const px = Math.round(dpi * inches)
+  canvas.width = px
+  canvas.height = px
+  // Draw QR with high resolution
+  QRCode.toCanvas(canvas, url, { width: px, margin:0 }, function(err){ if(err) console.error(err) })
+  // visually scale via CSS to exactly 6cm
+  div.appendChild(canvas)
+  return div
+}
+
+document.getElementById('generate').addEventListener('click', ()=>{
+  const server = document.getElementById('server').value.trim().replace(/\/+$/,'')
+  const start = parseInt(document.getElementById('start').value,10) || 1
+  const count = parseInt(document.getElementById('count').value,10) || 1
+  const sheet = document.getElementById('sheet')
+  sheet.innerHTML = ''
+  for(let i=0;i<count;i++){
+    const id = start + i
+    const url = server + '/bin.html?bin=' + id
+    const label = makeLabel(url)
+    sheet.appendChild(label)
+  }
+})
+
+document.getElementById('print').addEventListener('click', ()=>{
+  // ensure user uses 100% scale and no margins
+  window.print()
+})
+
+// generate an initial small batch
+document.getElementById('generate').click()
+</script>
+
+</body>
+</html>

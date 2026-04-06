@@ -81,6 +81,80 @@ display:inline-block;
 /* Ensure interactive controls are large enough for touch */
 button, input, select { min-height:40px; }
 
+/* Mobile navbar / hamburger drawer */
+.hamburger{
+	display:none;
+	background:transparent;
+	border:none;
+	color:#fff;
+	font-size:22px;
+	padding:6px 10px;
+	margin-right:8px;
+}
+
+.nav-links{ display:flex; gap:8px; align-items:center }
+
+/* Drawer behavior on small screens */
+@media (max-width: 800px){
+	.hamburger{ display:inline-block }
+	.nav-links{ 
+		position:fixed; 
+		top:0; right:-320px; 
+		width:280px; 
+		height:100%; 
+		background:#222; 
+		color:#fff; 
+		flex-direction:column; 
+		padding:60px 12px; 
+		gap:16px; 
+		transition: right 0.25s ease-in-out; 
+		z-index:2000;
+	}
+	body.nav-open .nav-links{ right:0 }
+	.nav-links a{ color:#fff; font-weight:600 }
+	.nav-right{ display:none }
+}
+
+/* Admin page styles moved here for consistency */
+/* Admin page */
+.admin-body{ /* reserved for admin-specific helpers */ }
+/* Styles copied from previous inline admin.css */
+.panel{
+	background:white;
+	padding:20px;
+	border-radius:10px;
+	margin-bottom:20px;
+}
+.btn-danger{
+		background:#c62828;
+		color:#fff;
+		border:none;
+		padding:10px 14px;
+		border-radius:8px;
+		cursor:pointer;
+}
+button{
+	padding:10px 14px;
+	margin-left:10px;
+}
+input{
+	padding:10px;
+}
+.user{
+	display:flex;
+	justify-content:space-between;
+	padding:8px;
+	border-bottom:1px solid #eee;
+}
+@media (max-width: 800px){
+	body{ margin:12px }
+	.panel{ padding:14px }
+	.user{ flex-direction:column; gap:8px; align-items:flex-start }
+	.panel input, .panel button{ width:100%; box-sizing:border-box }
+	.panel div[style*="display:flex"]{ flex-direction:column; gap:8px }
+	#resetBinId{ width:100% !important; margin-left:0 !important }
+}
+
 .map-container img{
 width:100%;
 display:block;
