@@ -36,6 +36,22 @@ res.json({logged:false})
 
 })
 
+// Temporary debug endpoint to inspect session state from the client.
+// Enabled only when not in production to avoid leaking session info.
+router.get('/admin/debug-session', (req, res) => {
+	if(process.env.NODE_ENV === 'production') return res.status(403).json({ error: 'forbidden' })
+	try{
+		return res.json({
+			sessionID: req.sessionID || null,
+			session: req.session || null,
+			// include raw Cookie header so we can inspect what the browser sent
+			cookieHeader: req.headers && req.headers.cookie ? req.headers.cookie : null
+		})
+	}catch(e){
+		return res.status(500).json({ error: String(e) })
+	}
+})
+
 
 // Set admin nickname in session (must be logged in as admin)
 router.post('/admin/set-nickname', (req, res) => {
