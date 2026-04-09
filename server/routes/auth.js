@@ -88,10 +88,25 @@ req.session.destroy((err)=>{
 		if(process.env.NODE_ENV === 'production' && process.env.PUBLIC_PROTOCOL === 'https'){
 			cookieOptions.secure = true
 		}
-		// If PUBLIC_HOST is set, explicitly clear the cookie for that domain
-		if(process.env.PUBLIC_HOST) cookieOptions.domain = process.env.PUBLIC_HOST
 
-		res.clearCookie('connect.sid', cookieOptions)
+		// Best-effort: clear the cookie multiple ways so browsers remove it
+		// even if the original cookie was set with different `domain` forms.
+		// 1) clear without domain
+		try{ res.clearCookie('connect.sid', cookieOptions) }catch(e){}
+
+		// 2) clear with PUBLIC_HOST if available
+		try{
+			if(process.env.PUBLIC_HOST){
+				const optsWithDomain = Object.assign({}, cookieOptions, { domain: process.env.PUBLIC_HOST })
+				res.clearCookie('connect.sid', optsWithDomain)
+				// also try leading-dot domain (some cookies were historically set with a leading dot)
+				if(!process.env.PUBLIC_HOST.startsWith('.')){
+					const dotDomain = '.' + process.env.PUBLIC_HOST
+					const optsWithDot = Object.assign({}, cookieOptions, { domain: dotDomain })
+					res.clearCookie('connect.sid', optsWithDot)
+				}
+			}
+		}catch(e){}
 	}catch(e){}
 
 	try{ console.log(`[auth/logout] pid=${process.pid} destroyed sessionID=${sid} err=${err ? String(err) : 'none'}`) }catch(e){}

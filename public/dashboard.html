@@ -4,6 +4,7 @@
 
 <title>Trash Control Dashboard</title>
 
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/css/style.css">
 
 <script src="/js/map.js"></script>
@@ -54,6 +55,27 @@ position:relative;
 /* leave padding on left side for smaller screens */
 @media (max-width: 900px){
   #layout{ padding-left: 16px; padding-right:16px }
+}
+
+/* Responsive: stack columns on narrow screens for better mobile layout */
+@media (max-width: 800px){
+	#layout{
+		flex-direction: column;
+		gap:12px;
+		padding-left:12px;
+		padding-right:12px;
+	}
+	#left, #right{
+		flex: unset;
+		width: 100%;
+	}
+	/* make right column appear after the map on mobile */
+	#right{ order: 2 }
+	#left{ order: 1 }
+	/* reduce activity box height to avoid overflow on small screens */
+	#activity{ height:200px }
+	/* remove left margin on map container to use full width */
+	.map-container{ margin-left:0 }
 }
 
 .marker{
