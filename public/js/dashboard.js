@@ -469,28 +469,65 @@ function refresh(){
 // heatmap hover: show value for nearest point
 let heatHoverThreshold = 40 // px
 
+// Improve hover behavior: prefer showing bin id (easier to read on mouse and touch)
+// and avoid showing the generic "Heat: <number>" tooltip which can obscure bin labels.
 function handleHeatMouseMove(ev){
   const rect = heatLayer.getBoundingClientRect()
   const x = ev.clientX - rect.left
   const y = ev.clientY - rect.top
 
-  if(!heatPoints || heatPoints.length === 0){ hideTooltip(); return }
+  // Try to find a nearby marker first (prefer bin id)
+  try{
+    if(markerLayer){
+      let nearestMarker = null
+      let bestDist = Infinity
+      Array.from(markerLayer.querySelectorAll('.marker')).forEach(m=>{
+        const mx = Number(m.dataset.clientX) || 0
+        const my = Number(m.dataset.clientY) || 0
+        const dx = mx - x
+        const dy = my - y
+        const d2 = dx*dx + dy*dy
+        if(d2 < bestDist){ bestDist = d2; nearestMarker = m }
+      })
 
-  let nearest = null
-  let bestDist = Infinity
+      if(nearestMarker && Math.sqrt(bestDist) <= heatHoverThreshold){
+        // show only the bin id to keep the UI clean
+        const id = nearestMarker.dataset && nearestMarker.dataset.binId ? nearestMarker.dataset.binId : null
+        if(id){ showTooltip(`#${id}`, ev.clientX, ev.clientY); return }
+      }
+    }
+  }catch(e){/* ignore marker parsing errors */}
 
-  for(const p of heatPoints){
-    const dx = p.x - x
-    const dy = p.y - y
-    const d2 = dx*dx + dy*dy
-    if(d2 < bestDist){ bestDist = d2; nearest = p }
-  }
+  // If no nearby marker, don't show the generic heat tooltip (it can be distracting)
+  hideTooltip()
+}
 
-  if(nearest && Math.sqrt(bestDist) <= heatHoverThreshold){
-    showTooltip(`Heat: ${nearest.value}`, ev.clientX, ev.clientY)
-  } else {
+// Touch support: on touchstart show nearest bin id briefly so mobile users can tap to see bin number
+let _touchTooltipPersistent = false
+function handleHeatTouchStart(ev){
+  if(!ev.touches || ev.touches.length === 0) return
+  const t = ev.touches[0]
+  // reuse mouse move logic by creating a synthetic event-like object
+  const synth = { clientX: t.clientX, clientY: t.clientY }
+
+  // If a persistent tooltip is already shown, hide it and clear persistence.
+  if(_touchTooltipPersistent){
     hideTooltip()
+    _touchTooltipPersistent = false
+    // allow event to propagate (we handled the hide)
+    return
   }
+
+  // Show tooltip and keep it persistent until the next tap anywhere.
+  handleHeatMouseMove(synth)
+  _touchTooltipPersistent = true
+
+  // prevent the document-level handler from immediately clearing the tooltip
+  try{ ev.stopPropagation && ev.stopPropagation() }catch(e){}
+}
+
+function handleHeatTouchEnd(){
+  // do nothing: persistence is controlled by taps, not touchend
 }
 
 if(heatLayer) heatLayer.addEventListener('mousemove', handleHeatMouseMove)
@@ -498,6 +535,30 @@ if(markerLayer) markerLayer.addEventListener('mousemove', handleHeatMouseMove)
 
 if(heatLayer) heatLayer.addEventListener('mouseleave', ()=>{ hideTooltip() })
 if(markerLayer) markerLayer.addEventListener('mouseleave', ()=>{ hideTooltip() })
+
+if(heatLayer) heatLayer.addEventListener('touchstart', handleHeatTouchStart, { passive: true })
+if(markerLayer) markerLayer.addEventListener('touchstart', handleHeatTouchStart, { passive: true })
+if(heatLayer) heatLayer.addEventListener('touchend', handleHeatTouchEnd)
+if(markerLayer) markerLayer.addEventListener('touchend', handleHeatTouchEnd)
+
+// Document-level touch handler: when a persistent tooltip is shown, any
+// subsequent tap (outside the heatLayer/marker) should hide it. We use a
+// capture listener so it runs before other bubble listeners.
+document.addEventListener('touchstart', function(ev){
+  if(!_touchTooltipPersistent) return
+  // If the touch started inside the heat or marker layers, let the layer
+  // handlers manage showing/hiding. If it started elsewhere, hide.
+  const touch = ev.touches && ev.touches[0]
+  if(!touch) return
+  const el = document.elementFromPoint(touch.clientX, touch.clientY)
+  if(!el) return
+  if(heatLayer && (heatLayer === el || heatLayer.contains(el))) return
+  if(markerLayer && (markerLayer === el || markerLayer.contains(el))) return
+
+  // hide tooltip and clear persistence
+  hideTooltip()
+  _touchTooltipPersistent = false
+}, { capture: true, passive: true })
 
 // initialize
 fetchNavbar()
