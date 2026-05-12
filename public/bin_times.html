@@ -15,6 +15,9 @@
     .tooltip{position:fixed;display:none;pointer-events:none;background:rgba(0,0,0,0.8);color:#fff;padding:6px 8px;border-radius:4px;font-size:13px}
     .list{max-height:80vh;overflow:auto;border:1px solid #ddd;padding:8px}
     .bin-row{padding:6px;border-bottom:1px solid #f3f3f3}
+    .bin-row.alert{background:#fff4f2;border-left:4px solid #e74c3c}
+    .bin-row .map-link{margin-left:8px;font-size:12px}
+    #staleHeader{margin:8px 0 6px 0;color:#c0392b}
   </style>
 </head>
 <body>
@@ -54,6 +57,9 @@ fetch('/components/navbar.html')
       <small id="lastUpdated" style="color:#666"></small>
     </div>
     <div style="margin-bottom:8px"><small>Filter: <span id="currentFilter">(none)</span></small></div>
+
+    <h4 id="staleHeader">Not emptied in 120+ min</h4>
+    <div id="staleBinsList" class="list" style="max-height:180px;margin-bottom:10px"></div>
 
     <div id="binsList" class="list"></div>
     <h3 style="margin-top:12px">Recent Logs</h3>

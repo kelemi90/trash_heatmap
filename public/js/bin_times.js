@@ -2,6 +2,7 @@
 
 const tooltip = document.getElementById('tooltip')
 const binsList = document.getElementById('binsList')
+const staleBinsList = document.getElementById('staleBinsList')
 const logsDiv = document.getElementById('logs')
 
 const ctxEmpties = document.getElementById('chartEmpties').getContext('2d')
@@ -11,6 +12,13 @@ let chartEmpties = null
 let logsCache = []
 let currentFilterBin = null
 let isAdmin = false
+
+function openMapForBin(binId){
+  const id = Number(binId)
+  if(!id || !isFinite(id)) return
+  try{ localStorage.setItem('highlightBinId', String(id)) }catch(e){}
+  window.location = `/dashboard.html?highlightBin=${encodeURIComponent(id)}`
+}
 
 function minutesAgo(ts){
   if(!ts) return null
@@ -100,6 +108,7 @@ async function loadData(){
 
   // Populate sidebar list and logs
   binsList.innerHTML = ''
+  if(staleBinsList) staleBinsList.innerHTML = ''
   const emptiesMap = {}
   ranking.forEach(r=>{ emptiesMap[r.bin_id] = r.total })
 
@@ -109,12 +118,43 @@ async function loadData(){
     return tb - ta
   })
 
+  const staleBins = bins.filter(b=>{
+    const m = minutesAgo(b.last)
+    return m !== null && m >= 120
+  }).sort((a,b)=> minutesAgo(b.last) - minutesAgo(a.last))
+
+  if(staleBinsList){
+    if(staleBins.length === 0){
+      staleBinsList.innerHTML = '<div class="bin-row">All bins have been emptied within 120 minutes.</div>'
+    }else{
+      staleBins.forEach(b=>{
+        const row = document.createElement('div')
+        row.className = 'bin-row alert'
+        row.innerHTML = `<strong>Bin ${b.id}</strong> — ${minutesAgo(b.last)}m ago <a href="#" class="map-link" data-map-bin="${b.id}">highlight on map</a>`
+        row.addEventListener('click', (ev)=>{
+          const target = ev.target
+          if(target && target.dataset && target.dataset.mapBin){
+            ev.preventDefault()
+            openMapForBin(target.dataset.mapBin)
+          }
+        })
+        staleBinsList.appendChild(row)
+      })
+    }
+  }
+
   bins.forEach(b=>{
     const row = document.createElement('div')
     row.className = 'bin-row'
     const lastDisplay = b.last ? `${niceTimeAgo(b.last)} (${formatLocal(b.last)})` : 'never'
-    row.innerHTML = `<strong>Bin ${b.id}</strong> — Last: ${lastDisplay} — Empties: ${emptiesMap[b.id] || 0}`
-  row.addEventListener('click', ()=>{
+    row.innerHTML = `<strong>Bin ${b.id}</strong> — Last: ${lastDisplay} — Empties: ${emptiesMap[b.id] || 0} <a href="#" class="map-link" data-map-bin="${b.id}">highlight on map</a>`
+  row.addEventListener('click', (ev)=>{
+      const target = ev.target
+      if(target && target.dataset && target.dataset.mapBin){
+        ev.preventDefault()
+        openMapForBin(target.dataset.mapBin)
+        return
+      }
       // highlight the bar in the empties chart
       try{
         const label = `Bin ${b.id}`

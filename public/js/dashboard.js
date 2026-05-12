@@ -211,6 +211,40 @@ window.addEventListener('resize', ()=>{
 let heatPoints = []
 let rankingMap = {}
 let isAdmin = false
+let highlightedBinId = null
+
+function resolveHighlightedBinId(){
+  try{
+    const params = new URLSearchParams(window.location.search)
+    const fromQuery = params.get('highlightBin')
+    if(fromQuery){
+      const n = Number(fromQuery)
+      if(isFinite(n) && n > 0){
+        highlightedBinId = String(Math.trunc(n))
+        try{ localStorage.setItem('highlightBinId', highlightedBinId) }catch(e){}
+        return
+      }
+    }
+  }catch(e){}
+
+  try{
+    const fromStorage = localStorage.getItem('highlightBinId')
+    if(fromStorage){
+      const n = Number(fromStorage)
+      if(isFinite(n) && n > 0){
+        highlightedBinId = String(Math.trunc(n))
+      }
+    }
+  }catch(e){}
+}
+
+function applyHighlightToMarker(marker){
+  marker.style.width = '22px'
+  marker.style.height = '22px'
+  marker.style.boxShadow = '0 0 0 4px rgba(231, 76, 60, 0.35), 0 0 14px rgba(231, 76, 60, 0.9)'
+  marker.style.border = '2px solid #ffffff'
+  marker.style.zIndex = '6'
+}
 
 function checkAdmin(){
   return fetch('/api/admin/check',{ credentials: 'same-origin' })
@@ -288,6 +322,10 @@ function updateStatus(){
 
         const empties = rankingMap[b.id] || 0
         marker.dataset.empties = empties
+
+        if(highlightedBinId && String(b.id) === String(highlightedBinId)){
+          applyHighlightToMarker(marker)
+        }
 
         // hover popup handlers
         marker.style.pointerEvents = 'auto' // enable hover/click on marker even if parent layer defaults to none
@@ -561,6 +599,7 @@ document.addEventListener('touchstart', function(ev){
 }, { capture: true, passive: true })
 
 // initialize
+resolveHighlightedBinId()
 fetchNavbar()
 refresh()
 setInterval(refresh, 5000)
