@@ -114,6 +114,80 @@ http://localhost:3001/dashboard.html
 
 ----
 
+## How to update server after code changes
+
+Use this checklist each time you modify code and want to deploy to the server.
+
+### 1) Commit and push from development machine
+
+```bash
+git add .
+git commit -m "Describe your change"
+git push origin main
+```
+
+### 2) Update code on the server
+
+```bash
+cd /path/to/trash_heatmap
+git pull --ff-only origin main
+```
+
+If your server is Windows, run this once to avoid long path issues:
+
+```powershell
+git config --global core.longpaths true
+```
+
+### 3) Install dependencies when needed
+
+If `package.json` or `package-lock.json` changed:
+
+```bash
+npm ci --omit=dev
+```
+
+If dependencies did not change, you can skip this step.
+
+### 4) Restart the app
+
+When running with pm2:
+
+```bash
+pm2 restart trash_heatmap
+```
+
+When running directly with Node:
+
+```bash
+# stop old process, then start again
+node server/server.js
+```
+
+### 5) Verify deployment
+
+```bash
+pm2 logs trash_heatmap --lines 100
+```
+
+Then open:
+
+- `http://localhost:3001/dashboard.html`
+- `http://localhost:3001/api/admin/check`
+
+Expected result: dashboard loads and API responds without server errors.
+
+### Quick safe routine (recommended)
+
+```bash
+git pull --ff-only origin main
+npm ci --omit=dev
+pm2 restart trash_heatmap
+pm2 logs trash_heatmap --lines 50
+```
+
+----
+
 ## Admin access
 
 There is a simple admin login flow used for the demo/dev setup. Default credentials used in this project:

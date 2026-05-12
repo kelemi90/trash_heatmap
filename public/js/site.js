@@ -47,8 +47,31 @@ window.markActiveNav = function(){
 
 // adjust navbar based on admin session state
 window.adjustNavbarAuth = async function(){
+  const setLoggedOutUI = function(){
+    try{
+      const nav = document.querySelector('.nav-links')
+      const navRight = document.querySelector('.nav-right')
+      const adminLinks = ['/admin.html','/bin_editor.html','/qr_labels.html']
+
+      if(nav){
+        nav.querySelectorAll('a').forEach(a=>{
+          const href = (a.getAttribute('href')||'').split(/[?#]/)[0]
+          if(adminLinks.includes(href)) a.style.display = 'none'
+        })
+      }
+
+      if(navRight){
+        navRight.innerHTML = `<a href="/admin_login.html" class="login-btn">Login</a>`
+      }
+    }catch(e){}
+  }
+
   try{
     const res = await fetch('/api/admin/check',{ credentials: 'same-origin' })
+    if(!res.ok){
+      setLoggedOutUI()
+      return
+    }
     const data = await res.json()
     const nav = document.querySelector('.nav-links')
     const navRight = document.querySelector('.nav-right')
@@ -81,6 +104,7 @@ window.adjustNavbarAuth = async function(){
       }
     }
   }catch(e){
-    // ignore network errors
+    // On network/auth-check failures, force logged-out UI to avoid stale Logout button.
+    setLoggedOutUI()
   }
 }
