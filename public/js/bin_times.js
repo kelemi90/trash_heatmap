@@ -2,7 +2,7 @@
 
 const tooltip = document.getElementById('tooltip')
 const binsList = document.getElementById('binsList')
-const staleBinsList = document.getElementById('staleBinsList')
+const staleBinsTableBody = document.getElementById('staleBinsTableBody')
 const logsDiv = document.getElementById('logs')
 
 const ctxEmpties = document.getElementById('chartEmpties').getContext('2d')
@@ -108,7 +108,7 @@ async function loadData(){
 
   // Populate sidebar list and logs
   binsList.innerHTML = ''
-  if(staleBinsList) staleBinsList.innerHTML = ''
+  if(staleBinsTableBody) staleBinsTableBody.innerHTML = ''
   const emptiesMap = {}
   ranking.forEach(r=>{ emptiesMap[r.bin_id] = r.total })
 
@@ -120,25 +120,31 @@ async function loadData(){
 
   const staleBins = bins.filter(b=>{
     const m = minutesAgo(b.last)
-    return m !== null && m >= 120
-  }).sort((a,b)=> minutesAgo(b.last) - minutesAgo(a.last))
+    return m === null || m >= 120
+  }).sort((a,b)=>{
+    const ma = minutesAgo(a.last)
+    const mb = minutesAgo(b.last)
+    return (mb === null ? Number.MAX_SAFE_INTEGER : mb) - (ma === null ? Number.MAX_SAFE_INTEGER : ma)
+  })
 
-  if(staleBinsList){
+  if(staleBinsTableBody){
     if(staleBins.length === 0){
-      staleBinsList.innerHTML = '<div class="bin-row">All bins have been emptied within 120 minutes.</div>'
+      staleBinsTableBody.innerHTML = '<tr><td colspan="5">All bins have been emptied within 120 minutes.</td></tr>'
     }else{
       staleBins.forEach(b=>{
-        const row = document.createElement('div')
-        row.className = 'bin-row alert'
-        row.innerHTML = `<strong>Bin ${b.id}</strong> — ${minutesAgo(b.last)}m ago <a href="#" class="map-link" data-map-bin="${b.id}">highlight on map</a>`
-        row.addEventListener('click', (ev)=>{
+        const tr = document.createElement('tr')
+        const mins = minutesAgo(b.last)
+        const minsText = mins === null ? 'never' : `${mins}m`
+        const lastDisplay = b.last ? formatLocal(b.last) : 'never'
+        tr.innerHTML = `<td><strong>Bin ${b.id}</strong></td><td>${lastDisplay}</td><td>${minsText}</td><td>${emptiesMap[b.id] || 0}</td><td><a href="#" class="map-link" data-map-bin="${b.id}">highlight</a></td>`
+        tr.addEventListener('click', (ev)=>{
           const target = ev.target
           if(target && target.dataset && target.dataset.mapBin){
             ev.preventDefault()
             openMapForBin(target.dataset.mapBin)
           }
         })
-        staleBinsList.appendChild(row)
+        staleBinsTableBody.appendChild(tr)
       })
     }
   }

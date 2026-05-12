@@ -15,9 +15,12 @@
     .tooltip{position:fixed;display:none;pointer-events:none;background:rgba(0,0,0,0.8);color:#fff;padding:6px 8px;border-radius:4px;font-size:13px}
     .list{max-height:80vh;overflow:auto;border:1px solid #ddd;padding:8px}
     .bin-row{padding:6px;border-bottom:1px solid #f3f3f3}
-    .bin-row.alert{background:#fff4f2;border-left:4px solid #e74c3c}
     .bin-row .map-link{margin-left:8px;font-size:12px}
-    #staleHeader{margin:8px 0 6px 0;color:#c0392b}
+    .overdue-wrap{margin:8px 0 14px 0}
+    .overdue-title{color:#c0392b;margin:0 0 8px 0}
+    .overdue-table{width:100%;border-collapse:collapse;background:#fff}
+    .overdue-table th,.overdue-table td{border:1px solid #e6e6e6;padding:8px;text-align:left;font-size:14px}
+    .overdue-table thead th{background:#fff4f2}
   </style>
 </head>
 <body>
@@ -38,6 +41,24 @@ fetch('/components/navbar.html')
 
 <h2>Bins — Emptying Times</h2>
 
+<div class="overdue-wrap">
+  <h3 class="overdue-title">Bins not emptied in 120+ minutes</h3>
+  <table class="overdue-table">
+    <thead>
+      <tr>
+        <th>Bin</th>
+        <th>Last emptied</th>
+        <th>Minutes ago</th>
+        <th>Empties</th>
+        <th>Map</th>
+      </tr>
+    </thead>
+    <tbody id="staleBinsTableBody">
+      <tr><td colspan="5">Loading...</td></tr>
+    </tbody>
+  </table>
+</div>
+
 <div class="wrap">
 
   <div class="map-area">
@@ -57,9 +78,6 @@ fetch('/components/navbar.html')
       <small id="lastUpdated" style="color:#666"></small>
     </div>
     <div style="margin-bottom:8px"><small>Filter: <span id="currentFilter">(none)</span></small></div>
-
-    <h4 id="staleHeader">Not emptied in 120+ min</h4>
-    <div id="staleBinsList" class="list" style="max-height:180px;margin-bottom:10px"></div>
 
     <div id="binsList" class="list"></div>
     <h3 style="margin-top:12px">Recent Logs</h3>
