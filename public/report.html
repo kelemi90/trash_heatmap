@@ -141,6 +141,32 @@
         pointer-events: none;
       }
 
+      #markerLayer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 3;
+        pointer-events: none;
+      }
+
+      .bin-marker {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #d62828;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        line-height: 20px;
+        text-align: center;
+        transform: translate(-50%, -50%);
+        border: 1px solid #fff;
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+      }
+
       #heatLayer canvas {
         position: absolute !important;
         top: 0;
@@ -308,6 +334,7 @@
         <div class="map-container" id="map">
           <img src="/map/pohjakartta.png" alt="Event map" />
           <div id="heatLayer"></div>
+          <div id="markerLayer"></div>
         </div>
         <div class="legend">
           <span>Low use</span>

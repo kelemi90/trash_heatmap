@@ -4,6 +4,7 @@
   const historyTableBody = document.getElementById("historyTableBody");
   const map = document.getElementById("map");
   const heatLayer = document.getElementById("heatLayer");
+  const markerLayer = document.getElementById("markerLayer");
 
   const refreshBtn = document.getElementById("refreshBtn");
   const excelBtn = document.getElementById("excelBtn");
@@ -15,6 +16,7 @@
   let heatmap = null;
   let reportRows = [];
   let heatRowsCache = [];
+  let statusRowsCache = [];
   const mapImg = map ? map.querySelector("img") : null;
 
   function parseTimestamp(ts) {
@@ -242,6 +244,14 @@
       heatLayer.style.width = imgRect.width + "px";
       heatLayer.style.height = imgRect.height + "px";
 
+      if (markerLayer) {
+        markerLayer.style.position = "absolute";
+        markerLayer.style.left = "0px";
+        markerLayer.style.top = "0px";
+        markerLayer.style.width = imgRect.width + "px";
+        markerLayer.style.height = imgRect.height + "px";
+      }
+
       if (
         heatmap &&
         heatmap._renderer &&
@@ -367,6 +377,33 @@
     heatmap.setData({ max, data: points });
   }
 
+  function renderMarkers(statusRows) {
+    if (!markerLayer) return;
+    markerLayer.innerHTML = "";
+
+    const rows = Array.isArray(statusRows) ? statusRows : [];
+    rows.forEach((bin) => {
+      const id = Number(bin && bin.id);
+      if (!Number.isFinite(id) || id <= 0) return;
+
+      const x = Number(bin && bin.x);
+      const y = Number(bin && bin.y);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+      if (x === 0 && y === 0) return;
+
+      const screen = mapToScreenUsingImage(x, y);
+      if (!screen) return;
+      if (!Number.isFinite(screen.x) || !Number.isFinite(screen.y)) return;
+
+      const marker = document.createElement("div");
+      marker.className = "bin-marker";
+      marker.style.left = Math.round(screen.x) + "px";
+      marker.style.top = Math.round(screen.y) + "px";
+      marker.textContent = String(id);
+      markerLayer.appendChild(marker);
+    });
+  }
+
   function downloadCsv(rows) {
     const head = ["bin_id", "total_empties"];
     const csvRows = [head].concat(rows.map((r) => [r.bin_id, r.total_empties]));
@@ -426,6 +463,7 @@
     const rankingRows = await rankingRes.json();
     const heatRows = await heatmapRes.json();
     const logRows = await logsRes.json();
+    statusRowsCache = Array.isArray(statusRows) ? statusRows : [];
     heatRowsCache = Array.isArray(heatRows) ? heatRows : [];
 
     reportRows = normalizeRows(statusRows, rankingRows);
@@ -434,6 +472,7 @@
     renderHistory(logRows);
     renderCharts(reportRows);
     ensureHeatLayerSized();
+    renderMarkers(statusRowsCache);
     renderHeatmap(heatRowsCache);
   }
 
@@ -449,6 +488,7 @@
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
         ensureHeatLayerSized();
+        if (statusRowsCache.length) renderMarkers(statusRowsCache);
         if (heatRowsCache.length) renderHeatmap(heatRowsCache);
       }, 120);
     });
