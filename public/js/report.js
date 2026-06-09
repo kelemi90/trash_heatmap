@@ -382,8 +382,6 @@
     markerLayer.innerHTML = "";
 
     const rows = Array.isArray(statusRows) ? statusRows : [];
-    const points = [];
-
     rows.forEach((bin) => {
       const id = Number(bin && bin.id);
       if (!Number.isFinite(id) || id <= 0) return;
@@ -397,49 +395,11 @@
       if (!screen) return;
       if (!Number.isFinite(screen.x) || !Number.isFinite(screen.y)) return;
 
-      points.push({ id, x: Math.round(screen.x), y: Math.round(screen.y) });
-    });
-
-    const topEdgePad = 22;
-    const bottomEdgePad = 22;
-    const dx = 80;
-    const dy = 36;
-    const layerHeight = markerLayer.clientHeight || 0;
-
-    points.forEach((p) => {
-      const aboveNeighbors = points.filter(
-        (q) =>
-          q !== p && Math.abs(q.x - p.x) <= dx && q.y < p.y && p.y - q.y <= dy,
-      ).length;
-
-      const belowNeighbors = points.filter(
-        (q) =>
-          q !== p && Math.abs(q.x - p.x) <= dx && q.y > p.y && q.y - p.y <= dy,
-      ).length;
-
-      let placement = "above";
-      if (p.y <= topEdgePad) placement = "below";
-      else if (layerHeight > 0 && p.y >= layerHeight - bottomEdgePad) {
-        placement = "above";
-      } else if (belowNeighbors < aboveNeighbors) {
-        placement = "below";
-      }
-
       const marker = document.createElement("div");
-      marker.className =
-        "bin-marker " + (placement === "below" ? "label-below" : "label-above");
-      marker.style.left = p.x + "px";
-      marker.style.top = p.y + "px";
-
-      const dot = document.createElement("span");
-      dot.className = "bin-dot";
-      marker.appendChild(dot);
-
-      const label = document.createElement("span");
-      label.className = "bin-marker-label";
-      label.textContent = String(p.id);
-      marker.appendChild(label);
-
+      marker.className = "bin-marker";
+      marker.style.left = Math.round(screen.x) + "px";
+      marker.style.top = Math.round(screen.y) + "px";
+      marker.textContent = String(id);
       markerLayer.appendChild(marker);
     });
   }
