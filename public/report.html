@@ -268,9 +268,29 @@
         margin: 10mm;
       }
 
+      @page landscapePage {
+        size: A4 landscape;
+        margin: 10mm;
+      }
+
+      @page portraitPage {
+        size: A4 portrait;
+        margin: 10mm;
+      }
+
       @media print {
         body {
           background: #fff;
+        }
+
+        .print-landscape {
+          page: landscapePage;
+        }
+
+        .print-portrait {
+          page: portraitPage;
+          break-before: page;
+          page-break-before: always;
         }
 
         .grid {
@@ -312,6 +332,24 @@
           overflow: visible;
           border: none;
         }
+
+        body.print-heatmap-only .title-row,
+        body.print-heatmap-only .section-note,
+        body.print-heatmap-only .grid,
+        body.print-heatmap-only .split-tables,
+        body.print-heatmap-only .toolbar {
+          display: none !important;
+        }
+
+        body.print-heatmap-only .print-landscape {
+          page: landscapePage;
+          break-before: auto;
+          page-break-before: auto;
+        }
+
+        body.print-heatmap-only .print-landscape > h3 {
+          margin-top: 0 !important;
+        }
       }
     </style>
   </head>
@@ -344,32 +382,35 @@
           <button type="button" id="excelBtn">Download Excel</button>
           <button type="button" id="csvBtn">Download CSV</button>
           <button type="button" id="printBtn">Print report</button>
+          <button type="button" id="printHeatmapBtn">Print heatmap only</button>
         </div>
 
-        <div class="grid">
-          <div class="panel chart-wrap">
-            <h3>Empties Per Bin</h3>
-            <canvas id="barChart"></canvas>
+        <div class="print-landscape">
+          <div class="grid">
+            <div class="panel chart-wrap">
+              <h3>Empties Per Bin</h3>
+              <canvas id="barChart"></canvas>
+            </div>
+            <div class="panel chart-wrap">
+              <h3>Usage Share (Top 10)</h3>
+              <canvas id="pieChart"></canvas>
+            </div>
           </div>
-          <div class="panel chart-wrap">
-            <h3>Usage Share (Top 10)</h3>
-            <canvas id="pieChart"></canvas>
+
+          <h3 style="margin: 16px 0 0">Heatmap</h3>
+          <div class="map-container" id="map">
+            <img src="/map/pohjakartta.png" alt="Event map" />
+            <div id="heatLayer"></div>
+            <div id="markerLayer"></div>
+          </div>
+          <div class="legend">
+            <span>Low use</span>
+            <span class="legend-bar" aria-hidden="true"></span>
+            <span>High use</span>
           </div>
         </div>
 
-        <h3 style="margin: 16px 0 0">Heatmap</h3>
-        <div class="map-container" id="map">
-          <img src="/map/pohjakartta.png" alt="Event map" />
-          <div id="heatLayer"></div>
-          <div id="markerLayer"></div>
-        </div>
-        <div class="legend">
-          <span>Low use</span>
-          <span class="legend-bar" aria-hidden="true"></span>
-          <span>High use</span>
-        </div>
-
-        <div class="split-tables">
+        <div class="split-tables print-portrait">
           <div>
             <h3 style="margin: 0">Bin Usage Table</h3>
             <div class="table-wrap">

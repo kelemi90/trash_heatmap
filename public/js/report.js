@@ -11,6 +11,7 @@
   const excelBtn = document.getElementById("excelBtn");
   const csvBtn = document.getElementById("csvBtn");
   const printBtn = document.getElementById("printBtn");
+  const printHeatmapBtn = document.getElementById("printHeatmapBtn");
 
   let barChart = null;
   let pieChart = null;
@@ -629,6 +630,16 @@
     if (excelBtn)
       excelBtn.addEventListener("click", () => downloadExcel(reportRows));
     if (printBtn) printBtn.addEventListener("click", () => window.print());
+    if (printHeatmapBtn) {
+      printHeatmapBtn.addEventListener("click", () => {
+        document.body.classList.add("print-heatmap-only");
+        window.print();
+      });
+    }
+
+    window.addEventListener("afterprint", () => {
+      document.body.classList.remove("print-heatmap-only");
+    });
 
     let resizeTimer = null;
     window.addEventListener("resize", () => {
