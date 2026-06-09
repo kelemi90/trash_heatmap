@@ -168,8 +168,7 @@
 
       .bin-marker-label {
         position: absolute;
-        left: calc(50% + var(--label-shift-x, 0px));
-        top: var(--label-shift-y, -13px);
+        left: 50%;
         transform: translateX(-50%);
         font-size: 10px;
         font-weight: 700;
@@ -180,6 +179,14 @@
         padding: 0 3px;
         line-height: 1.2;
         white-space: nowrap;
+      }
+
+      .bin-marker.label-above .bin-marker-label {
+        bottom: 12px;
+      }
+
+      .bin-marker.label-below .bin-marker-label {
+        top: 12px;
       }
 
       #heatLayer canvas {

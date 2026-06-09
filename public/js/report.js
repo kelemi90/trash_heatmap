@@ -52,82 +52,40 @@
         dateStyle: "medium",
         timeStyle: "short",
       }).format(new Date());
-      points.sort((a, b) => a.y - b.y || a.x - b.x);
+  }
 
+  function loadNavbar() {
+    fetch("/components/navbar.html")
       .then((r) => r.text())
-      const layerWidth = markerLayer.clientWidth || 0;
-      const occupied = [];
-
-      const intersects = (a, b) => {
-        return !(
-          a.left + a.width <= b.left ||
-          b.left + b.width <= a.left ||
-          a.top + a.height <= b.top ||
-          b.top + b.height <= a.top
-        );
-      };
-
-      const candidateOffsets = [
-        { dx: 0, dy: -18 },
-        { dx: 0, dy: 12 },
-        { dx: 14, dy: -18 },
-        { dx: -14, dy: -18 },
-        { dx: 14, dy: 12 },
-        { dx: -14, dy: 12 },
-        { dx: 28, dy: -18 },
-        { dx: -28, dy: -18 },
-        { dx: 28, dy: 12 },
-        { dx: -28, dy: 12 },
-        { dx: 0, dy: -28 },
-        { dx: 0, dy: 22 },
-      ];
       .then((html) => {
         const nav = document.getElementById("navbar");
-        const text = String(p.id);
-        const labelWidth = Math.max(16, text.length * 6 + 8);
-        const labelHeight = 14;
+        if (nav) nav.innerHTML = html;
+        if (window.markActiveNav) window.markActiveNav();
+        if (window.adjustNavbarAuth) window.adjustNavbarAuth();
+      })
+      .catch(() => {});
+  }
 
-        let best = null;
+  function normalizeRows(statusRows, rankingRows) {
+    const usageByBin = {};
+    rankingRows.forEach((r) => {
+      if (!r) return;
+      const binId = Number(r.bin_id);
+      if (!Number.isFinite(binId) || binId <= 0) return;
+      usageByBin[String(binId)] = Number(r.total) || 0;
+    });
 
-        candidateOffsets.forEach((cand) => {
-          const desiredLeft = p.x + cand.dx - labelWidth / 2;
-          const desiredTop = p.y + cand.dy;
-
-          const clampedLeft = Math.max(
-            0,
-            Math.min(Math.max(0, layerWidth - labelWidth), desiredLeft),
-          );
-          const clampedTop = Math.max(
-            0,
-            Math.min(Math.max(0, layerHeight - labelHeight), desiredTop),
-          );
-
-          const box = {
-            left: clampedLeft,
-            top: clampedTop,
-            width: labelWidth,
-            height: labelHeight,
-          };
-
-          const overlaps = occupied.reduce(
-            (count, prev) => count + (intersects(box, prev) ? 1 : 0),
-            0,
-          );
-
-          const centerX = clampedLeft + labelWidth / 2;
-          const dxFinal = Math.round(centerX - p.x);
-          const dyFinal = Math.round(clampedTop - p.y);
-          const penalty = overlaps * 100 + Math.abs(dxFinal) + Math.abs(dyFinal - cand.dy);
-
-          const choice = { box, overlaps, penalty, dxFinal, dyFinal };
-          if (!best || choice.penalty < best.penalty) best = choice;
-        });
-
-        if (!best) return;
-        occupied.push(best.box);
+    return statusRows
+      .map((s) => {
+        const id = Number(s.id);
+        return {
+          bin_id: id,
+          total_empties: usageByBin[String(id)] || 0,
+          last_emptied: s.last || null,
           minutes_since_last: minutesAgo(s.last),
           x: Number(s.x) || 0,
-        marker.className = "bin-marker";
+          y: Number(s.y) || 0,
+        };
       })
       .filter(
         (row) =>
@@ -138,8 +96,6 @@
       .sort((a, b) => b.total_empties - a.total_empties || a.bin_id - b.bin_id);
   }
 
-        label.style.setProperty("--label-shift-x", best.dxFinal + "px");
-        label.style.setProperty("--label-shift-y", best.dyFinal + 5 + "px");
   function renderTable(rows) {
     usageTableBody.innerHTML = "";
     if (!rows.length) {
