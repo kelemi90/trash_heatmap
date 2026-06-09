@@ -218,7 +218,9 @@
     pieChart = new Chart(pieCtx, {
       type: "doughnut",
       data: {
-        labels: top.map((r) => "Bin " + r.bin_id),
+        labels: top.map(
+          (r) => "Bin " + r.bin_id + " (" + r.total_empties + ")",
+        ),
         datasets: [
           {
             data: top.map((r) => r.total_empties),
@@ -232,6 +234,14 @@
         plugins: {
           legend: {
             position: "bottom",
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const value = Number(ctx.raw) || 0;
+                return ctx.label + ": " + value + " empties";
+              },
+            },
           },
         },
       },
@@ -421,8 +431,6 @@
       { left: x - w / 2, top: y + dotR + gap, pref: 3 },
       { left: x - w / 2 - 14, top: y + dotR + gap, pref: 4 },
       { left: x - w / 2 + 14, top: y + dotR + gap, pref: 5 },
-      { left: x + dotR + gap, top: y - h / 2, pref: 10 },
-      { left: x - dotR - gap - w, top: y - h / 2, pref: 11 },
     ];
   }
 
@@ -433,7 +441,7 @@
     const layerWidth = Math.max(1, markerLayer.clientWidth || 0);
     const layerHeight = Math.max(1, markerLayer.clientHeight || 0);
     const dotRadius = 5;
-    const labelGap = 10;
+    const labelGap = 14;
 
     const rows = Array.isArray(statusRows) ? statusRows : [];
     rows.forEach((bin) => {
