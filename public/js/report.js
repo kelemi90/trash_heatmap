@@ -406,11 +406,11 @@
   function labelCandidates(x, y, w, h, dotR, gap) {
     return [
       { left: x - w / 2, top: y - dotR - gap - h, pref: 0 },
-      { left: x - w / 2 - 10, top: y - dotR - gap - h, pref: 1 },
-      { left: x - w / 2 + 10, top: y - dotR - gap - h, pref: 2 },
+      { left: x - w / 2 - 14, top: y - dotR - gap - h, pref: 1 },
+      { left: x - w / 2 + 14, top: y - dotR - gap - h, pref: 2 },
       { left: x - w / 2, top: y + dotR + gap, pref: 3 },
-      { left: x - w / 2 - 10, top: y + dotR + gap, pref: 4 },
-      { left: x - w / 2 + 10, top: y + dotR + gap, pref: 5 },
+      { left: x - w / 2 - 14, top: y + dotR + gap, pref: 4 },
+      { left: x - w / 2 + 14, top: y + dotR + gap, pref: 5 },
       { left: x + dotR + gap, top: y - h / 2, pref: 10 },
       { left: x - dotR - gap - w, top: y - h / 2, pref: 11 },
     ];
@@ -423,7 +423,7 @@
     const layerWidth = Math.max(1, markerLayer.clientWidth || 0);
     const layerHeight = Math.max(1, markerLayer.clientHeight || 0);
     const dotRadius = 5;
-    const labelGap = 4;
+    const labelGap = 10;
 
     const rows = Array.isArray(statusRows) ? statusRows : [];
     rows.forEach((bin) => {
