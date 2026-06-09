@@ -395,10 +395,9 @@
   }
 
   function mapToScreenUsingImage(x, y) {
-    if (!mapImg || !map) return null;
+    if (!mapImg) return null;
 
     const imgRect = mapImg.getBoundingClientRect();
-    const containerRect = map.getBoundingClientRect();
 
     if (!imgRect.width || !imgRect.height) return null;
 
@@ -406,13 +405,12 @@
       imgRect.width / (typeof MAP_WIDTH !== "undefined" ? MAP_WIDTH : 1);
     const scaleY =
       imgRect.height / (typeof MAP_HEIGHT !== "undefined" ? MAP_HEIGHT : 1);
-    // Convert to map content-box coordinates to match absolute overlay origin.
-    const offsetX = imgRect.left - (containerRect.left + map.clientLeft);
-    const offsetY = imgRect.top - (containerRect.top + map.clientTop);
 
     return {
-      x: Math.round(Number(x) * scaleX + offsetX),
-      y: Math.round(Number(y) * scaleY + offsetY),
+      // Use image-local coordinates because heat/marker layers are already
+      // positioned to the image origin by ensureHeatLayerSized().
+      x: Math.round(Number(x) * scaleX),
+      y: Math.round(Number(y) * scaleY),
     };
   }
 
