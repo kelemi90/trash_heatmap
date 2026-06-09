@@ -285,6 +285,8 @@
 
         .print-landscape {
           page: landscapePage;
+          break-before: avoid-page;
+          page-break-before: auto;
         }
 
         .print-portrait {
@@ -301,6 +303,28 @@
         .chart-wrap {
           height: 260px;
           min-height: 260px;
+        }
+
+        /* Keep charts on first landscape page and map on second landscape page */
+        .print-landscape .map-container {
+          break-before: page;
+          page-break-before: always;
+          width: 100%;
+          max-height: 175mm;
+          border: none;
+          border-radius: 0;
+          overflow: hidden;
+        }
+
+        .print-landscape .map-container img {
+          width: auto !important;
+          max-width: 100%;
+          height: auto !important;
+          max-height: 170mm;
+        }
+
+        .print-landscape .legend {
+          margin-top: 6px;
         }
 
         .page {
