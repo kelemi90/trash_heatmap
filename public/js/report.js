@@ -293,23 +293,16 @@
         return;
       }
 
-      const containerRect = map.getBoundingClientRect();
-      // Absolute children are positioned from the padding box (content origin),
-      // not from the border box returned by getBoundingClientRect.
-      const contentOffsetX =
-        imgRect.left - (containerRect.left + map.clientLeft);
-      const contentOffsetY = imgRect.top - (containerRect.top + map.clientTop);
-
       heatLayer.style.position = "absolute";
-      heatLayer.style.left = Math.round(contentOffsetX) + "px";
-      heatLayer.style.top = Math.round(contentOffsetY) + "px";
+      heatLayer.style.left = "0px";
+      heatLayer.style.top = "0px";
       heatLayer.style.width = imgRect.width + "px";
       heatLayer.style.height = imgRect.height + "px";
 
       if (markerLayer) {
         markerLayer.style.position = "absolute";
-        markerLayer.style.left = Math.round(contentOffsetX) + "px";
-        markerLayer.style.top = Math.round(contentOffsetY) + "px";
+        markerLayer.style.left = "0px";
+        markerLayer.style.top = "0px";
         markerLayer.style.width = imgRect.width + "px";
         markerLayer.style.height = imgRect.height + "px";
       }
