@@ -20,16 +20,27 @@
 
       .page {
         max-width: 1200px;
-        margin: 20px auto 30px;
+        margin: 24px auto 36px;
         padding: 0 16px;
       }
 
       .card {
         background: #fff;
         border: 1px solid #d7dee6;
-        border-radius: 10px;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
-        padding: 14px;
+        border-radius: 12px;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.07);
+        padding: 18px;
+      }
+
+      .section-title {
+        margin: 0;
+        font-size: 20px;
+      }
+
+      .section-note {
+        margin: 6px 0 0;
+        color: #566678;
+        font-size: 14px;
       }
 
       .title-row {
@@ -51,7 +62,7 @@
       }
 
       .toolbar {
-        margin: 12px 0 14px;
+        margin: 14px 0 16px;
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
@@ -64,6 +75,7 @@
         color: #fff;
         border-radius: 6px;
         cursor: pointer;
+        font-weight: 600;
       }
 
       button:hover {
@@ -73,8 +85,19 @@
       .grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        margin-top: 12px;
+        gap: 14px;
+        margin-top: 14px;
+      }
+
+      .panel {
+        border: 1px solid #dfe6ee;
+        border-radius: 10px;
+        padding: 12px;
+        background: #fdfefe;
+      }
+
+      .panel h3 {
+        margin: 0 0 8px;
       }
 
       .chart-wrap {
@@ -84,10 +107,6 @@
         flex-direction: column;
       }
 
-      .chart-wrap h3 {
-        margin: 0 0 8px;
-      }
-
       .chart-wrap canvas {
         flex: 1;
         min-height: 0;
@@ -95,11 +114,13 @@
       }
 
       .map-container {
-        margin-top: 12px;
+        margin-top: 14px;
         position: relative;
         overflow: hidden;
         display: block;
         width: 100%;
+        border: 1px solid #dfe6ee;
+        border-radius: 10px;
       }
 
       .map-container img {
@@ -129,7 +150,7 @@
       }
 
       .legend {
-        margin-top: 8px;
+        margin-top: 10px;
         display: flex;
         align-items: center;
         gap: 8px;
@@ -159,7 +180,7 @@
       }
 
       .table-wrap {
-        margin-top: 12px;
+        margin-top: 10px;
         max-height: 430px;
         overflow: auto;
         border: 1px solid #e1e7ed;
@@ -171,6 +192,7 @@
         border: 1px solid #e1e7ed;
         padding: 8px;
         text-align: left;
+        white-space: nowrap;
       }
 
       th {
@@ -178,6 +200,13 @@
         position: sticky;
         top: 0;
         z-index: 1;
+      }
+
+      .split-tables {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        margin-top: 14px;
       }
 
       @media (max-width: 900px) {
@@ -242,6 +271,10 @@
           <h1>Bin Usage Report</h1>
           <p class="meta" id="reportMeta"></p>
         </div>
+        <p class="section-note">
+          Analytics summary for emptied bins, activity share, and full emptying
+          history.
+        </p>
 
         <div class="toolbar">
           <button type="button" id="refreshBtn">Refresh data</button>
@@ -251,16 +284,17 @@
         </div>
 
         <div class="grid">
-          <div class="card chart-wrap">
+          <div class="panel chart-wrap">
             <h3>Empties Per Bin</h3>
             <canvas id="barChart"></canvas>
           </div>
-          <div class="card chart-wrap">
+          <div class="panel chart-wrap">
             <h3>Usage Share (Top 10)</h3>
             <canvas id="pieChart"></canvas>
           </div>
         </div>
 
+        <h3 style="margin: 16px 0 0">Heatmap</h3>
         <div class="map-container" id="map">
           <img src="/map/pohjakartta.png" alt="Event map" />
           <div id="heatLayer"></div>
@@ -271,39 +305,45 @@
           <span>High use</span>
         </div>
 
-        <h3 style="margin-top: 16px">Bin Usage Table</h3>
-        <div class="table-wrap">
-          <table id="usageTable">
-            <thead>
-              <tr>
-                <th>Bin ID</th>
-                <th>Total Empties</th>
-              </tr>
-            </thead>
-            <tbody id="usageTableBody">
-              <tr>
-                <td colspan="2">Loading...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <div class="split-tables">
+          <div>
+            <h3 style="margin: 0">Bin Usage Table</h3>
+            <div class="table-wrap">
+              <table id="usageTable">
+                <thead>
+                  <tr>
+                    <th>Bin ID</th>
+                    <th>Total Empties</th>
+                  </tr>
+                </thead>
+                <tbody id="usageTableBody">
+                  <tr>
+                    <td colspan="2">Loading...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-        <h3 style="margin-top: 16px">Emptying History (All Events)</h3>
-        <div class="table-wrap">
-          <table id="historyTable">
-            <thead>
-              <tr>
-                <th>Log ID</th>
-                <th>Bin ID</th>
-                <th>Emptied At</th>
-              </tr>
-            </thead>
-            <tbody id="historyTableBody">
-              <tr>
-                <td colspan="3">Loading...</td>
-              </tr>
-            </tbody>
-          </table>
+          <div>
+            <h3 style="margin: 0">Emptying History (All Events)</h3>
+            <div class="table-wrap">
+              <table id="historyTable">
+                <thead>
+                  <tr>
+                    <th>Log ID</th>
+                    <th>Bin ID</th>
+                    <th>Emptied At</th>
+                  </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                  <tr>
+                    <td colspan="3">Loading...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
     </main>
