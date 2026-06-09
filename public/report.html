@@ -61,6 +61,12 @@
         font-size: 14px;
       }
 
+      .meta-strong {
+        color: #1f3b57;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
       .toolbar {
         margin: 14px 0 16px;
         display: flex;
@@ -315,7 +321,17 @@
       <section class="card">
         <div class="title-row">
           <h1>Bin Usage Report</h1>
-          <p class="meta" id="reportMeta"></p>
+          <div
+            style="
+              display: flex;
+              gap: 12px;
+              align-items: center;
+              flex-wrap: wrap;
+            "
+          >
+            <p class="meta" id="reportMeta"></p>
+            <p class="meta-strong" id="usedBinsMeta">Used bins: 0/55</p>
+          </div>
         </div>
         <p class="section-note">
           Analytics summary for emptied bins, activity share, and full emptying

@@ -1,5 +1,6 @@
 (function () {
   const reportMeta = document.getElementById("reportMeta");
+  const usedBinsMeta = document.getElementById("usedBinsMeta");
   const usageTableBody = document.getElementById("usageTableBody");
   const historyTableBody = document.getElementById("historyTableBody");
   const map = document.getElementById("map");
@@ -18,6 +19,7 @@
   let heatRowsCache = [];
   let statusRowsCache = [];
   const mapImg = map ? map.querySelector("img") : null;
+  const TOTAL_BINS = 55;
 
   function parseTimestamp(ts) {
     if (!ts) return null;
@@ -52,6 +54,14 @@
         dateStyle: "medium",
         timeStyle: "short",
       }).format(new Date());
+  }
+
+  function setUsedBinsMeta(usedCount) {
+    if (!usedBinsMeta) return;
+    const safeUsed = Number.isFinite(usedCount)
+      ? Math.max(0, Math.round(usedCount))
+      : 0;
+    usedBinsMeta.textContent = "Used bins: " + safeUsed + "/" + TOTAL_BINS;
   }
 
   function loadNavbar() {
@@ -561,6 +571,7 @@
     heatRowsCache = Array.isArray(heatRows) ? heatRows : [];
 
     reportRows = normalizeRows(statusRows, rankingRows);
+    setUsedBinsMeta(reportRows.length);
 
     renderTable(reportRows);
     renderHistory(logRows);
