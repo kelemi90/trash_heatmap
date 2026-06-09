@@ -15,6 +15,7 @@
   let heatmap = null;
   let reportRows = [];
   let heatRowsCache = [];
+  const mapImg = map ? map.querySelector("img") : null;
 
   function parseTimestamp(ts) {
     if (!ts) return null;
@@ -84,7 +85,12 @@
           y: Number(s.y) || 0,
         };
       })
-      .filter((row) => Number.isFinite(row.bin_id) && row.bin_id > 0)
+      .filter(
+        (row) =>
+          Number.isFinite(row.bin_id) &&
+          row.bin_id > 0 &&
+          row.total_empties > 0,
+      )
       .sort((a, b) => b.total_empties - a.total_empties || a.bin_id - b.bin_id);
   }
 
@@ -107,7 +113,13 @@
     if (!historyTableBody) return;
 
     const filteredLogs = Array.isArray(logRows)
-      ? logRows.filter((log) => Number(log && log.bin_id) > 0)
+      ? logRows.filter(
+          (log) =>
+            Number(log && log.bin_id) > 0 &&
+            typeof log.timestamp !== "undefined" &&
+            log.timestamp !== null &&
+            String(log.timestamp).trim() !== "",
+        )
       : [];
 
     historyTableBody.innerHTML = "";
@@ -214,29 +226,86 @@
     });
   }
 
-  function prepareHeatLayer() {
-    const img = map.querySelector("img");
-    if (!img) return;
-    const mapRect = map.getBoundingClientRect();
-    const rect = img.getBoundingClientRect();
-    heatLayer.style.position = "absolute";
-    heatLayer.style.left =
-      Math.max(0, Math.round(rect.left - mapRect.left)) + "px";
-    heatLayer.style.top =
-      Math.max(0, Math.round(rect.top - mapRect.top)) + "px";
-    heatLayer.style.width = rect.width + "px";
-    heatLayer.style.height = rect.height + "px";
+  function ensureHeatLayerSized(retries = 6) {
+    try {
+      if (!mapImg || !heatLayer) return;
+      const imgRect = mapImg.getBoundingClientRect();
 
-    if (
-      heatmap &&
-      heatmap._renderer &&
-      typeof heatmap._renderer.setDimensions === "function"
-    ) {
-      heatmap._renderer.setDimensions(
-        Math.max(1, Math.round(rect.width)),
-        Math.max(1, Math.round(rect.height)),
-      );
+      if (imgRect.height <= 2 && retries > 0) {
+        setTimeout(() => ensureHeatLayerSized(retries - 1), 200);
+        return;
+      }
+
+      heatLayer.style.position = "absolute";
+      heatLayer.style.left = "0px";
+      heatLayer.style.top = "0px";
+      heatLayer.style.width = imgRect.width + "px";
+      heatLayer.style.height = imgRect.height + "px";
+
+      if (
+        heatmap &&
+        heatmap._renderer &&
+        typeof heatmap._renderer.setDimensions === "function"
+      ) {
+        heatmap._renderer.setDimensions(
+          Math.max(1, heatLayer.clientWidth),
+          Math.max(1, heatLayer.clientHeight),
+        );
+      }
+
+      try {
+        Array.from(heatLayer.querySelectorAll("canvas")).forEach((c) => {
+          c.style.position = "absolute";
+          c.style.left = "0";
+          c.style.top = "0";
+          c.style.width = "100%";
+          c.style.height = "100%";
+          c.style.pointerEvents = "none";
+          c.style.zIndex = "2";
+          if (c.parentElement === heatLayer) {
+            heatLayer.insertBefore(c, heatLayer.firstChild);
+          }
+        });
+      } catch (e) {}
+
+      if (heatLayer.clientHeight <= 2 && retries > 0) {
+        setTimeout(() => ensureHeatLayerSized(retries - 1), 300);
+      }
+    } catch (e) {
+      if (retries > 0) setTimeout(() => ensureHeatLayerSized(retries - 1), 200);
     }
+  }
+
+  function createHeatmap() {
+    if (heatmap) return heatmap;
+
+    try {
+      ensureHeatLayerSized();
+    } catch (e) {}
+
+    try {
+      Array.from(heatLayer.querySelectorAll("canvas")).forEach((c) =>
+        c.remove(),
+      );
+    } catch (e) {}
+
+    try {
+      heatmap = h337.create({ container: heatLayer, radius: 40 });
+    } catch (e) {
+      heatmap = null;
+    }
+
+    try {
+      const w = Math.max(1, heatLayer.clientWidth);
+      const h = Math.max(1, heatLayer.clientHeight);
+      if (
+        heatmap &&
+        heatmap._renderer &&
+        typeof heatmap._renderer.setDimensions === "function"
+      ) {
+        heatmap._renderer.setDimensions(w, h);
+      }
+    } catch (e) {}
 
     try {
       Array.from(heatLayer.querySelectorAll("canvas")).forEach((c) => {
@@ -249,26 +318,35 @@
         c.style.zIndex = "2";
       });
     } catch (e) {}
+
+    return heatmap;
   }
 
   function mapToScreenUsingImage(x, y) {
-    const img = map.querySelector("img");
-    if (!img) return null;
+    if (!mapImg || !map) return null;
 
-    const rect = img.getBoundingClientRect();
-    if (!rect.width || !rect.height) return null;
+    const imgRect = mapImg.getBoundingClientRect();
+    const containerRect = map.getBoundingClientRect();
+
+    if (!imgRect.width || !imgRect.height) return null;
+
+    const scaleX =
+      imgRect.width / (typeof MAP_WIDTH !== "undefined" ? MAP_WIDTH : 1);
+    const scaleY =
+      imgRect.height / (typeof MAP_HEIGHT !== "undefined" ? MAP_HEIGHT : 1);
+    const offsetX = imgRect.left - containerRect.left;
+    const offsetY = imgRect.top - containerRect.top;
 
     return {
-      x: (Number(x) * rect.width) / MAP_WIDTH,
-      y: (Number(y) * rect.height) / MAP_HEIGHT,
+      x: Math.round(Number(x) * scaleX + offsetX),
+      y: Math.round(Number(y) * scaleY + offsetY),
     };
   }
 
   function renderHeatmap(heatRows) {
-    if (!heatmap) {
-      heatmap = h337.create({ container: heatLayer, radius: 40 });
-      prepareHeatLayer();
-    }
+    createHeatmap();
+    ensureHeatLayerSized();
+    if (!heatmap) return;
 
     const points = [];
     let max = 1;
@@ -290,24 +368,8 @@
   }
 
   function downloadCsv(rows) {
-    const head = [
-      "bin_id",
-      "total_empties",
-      "last_emptied",
-      "minutes_since_last",
-      "x",
-      "y",
-    ];
-    const csvRows = [head].concat(
-      rows.map((r) => [
-        r.bin_id,
-        r.total_empties,
-        r.last_emptied || "",
-        r.minutes_since_last === null ? "" : r.minutes_since_last,
-        r.x,
-        r.y,
-      ]),
-    );
+    const head = ["bin_id", "total_empties"];
+    const csvRows = [head].concat(rows.map((r) => [r.bin_id, r.total_empties]));
 
     const csv = csvRows
       .map((line) =>
@@ -337,11 +399,6 @@
     const excelRows = rows.map((r) => ({
       bin_id: r.bin_id,
       total_empties: r.total_empties,
-      last_emptied: r.last_emptied || "",
-      minutes_since_last:
-        r.minutes_since_last === null ? "" : r.minutes_since_last,
-      map_x: r.x,
-      map_y: r.y,
     }));
 
     const ws = XLSX.utils.json_to_sheet(excelRows);
@@ -376,7 +433,7 @@
     renderTable(reportRows);
     renderHistory(logRows);
     renderCharts(reportRows);
-    prepareHeatLayer();
+    ensureHeatLayerSized();
     renderHeatmap(heatRowsCache);
   }
 
@@ -391,7 +448,7 @@
     window.addEventListener("resize", () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
-        prepareHeatLayer();
+        ensureHeatLayerSized();
         if (heatRowsCache.length) renderHeatmap(heatRowsCache);
       }, 120);
     });
