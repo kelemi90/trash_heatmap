@@ -67,7 +67,9 @@
     const usageByBin = {};
     rankingRows.forEach((r) => {
       if (!r) return;
-      usageByBin[String(r.bin_id)] = Number(r.total) || 0;
+      const binId = Number(r.bin_id);
+      if (!Number.isFinite(binId) || binId <= 0) return;
+      usageByBin[String(binId)] = Number(r.total) || 0;
     });
 
     return statusRows
@@ -82,6 +84,7 @@
           y: Number(s.y) || 0,
         };
       })
+      .filter((row) => Number.isFinite(row.bin_id) && row.bin_id > 0)
       .sort((a, b) => b.total_empties - a.total_empties || a.bin_id - b.bin_id);
   }
 
@@ -103,14 +106,18 @@
   function renderHistory(logRows) {
     if (!historyTableBody) return;
 
+    const filteredLogs = Array.isArray(logRows)
+      ? logRows.filter((log) => Number(log && log.bin_id) > 0)
+      : [];
+
     historyTableBody.innerHTML = "";
-    if (!Array.isArray(logRows) || !logRows.length) {
+    if (!filteredLogs.length) {
       historyTableBody.innerHTML =
         '<tr><td colspan="3">No emptying events</td></tr>';
       return;
     }
 
-    logRows.forEach((log) => {
+    filteredLogs.forEach((log) => {
       const tr = document.createElement("tr");
       tr.innerHTML =
         "<td>" +
@@ -210,10 +217,13 @@
   function prepareHeatLayer() {
     const img = map.querySelector("img");
     if (!img) return;
+    const mapRect = map.getBoundingClientRect();
     const rect = img.getBoundingClientRect();
     heatLayer.style.position = "absolute";
-    heatLayer.style.left = "0px";
-    heatLayer.style.top = "0px";
+    heatLayer.style.left =
+      Math.max(0, Math.round(rect.left - mapRect.left)) + "px";
+    heatLayer.style.top =
+      Math.max(0, Math.round(rect.top - mapRect.top)) + "px";
     heatLayer.style.width = rect.width + "px";
     heatLayer.style.height = rect.height + "px";
 
@@ -241,6 +251,19 @@
     } catch (e) {}
   }
 
+  function mapToScreenUsingImage(x, y) {
+    const img = map.querySelector("img");
+    if (!img) return null;
+
+    const rect = img.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+
+    return {
+      x: (Number(x) * rect.width) / MAP_WIDTH,
+      y: (Number(y) * rect.height) / MAP_HEIGHT,
+    };
+  }
+
   function renderHeatmap(heatRows) {
     if (!heatmap) {
       heatmap = h337.create({ container: heatLayer, radius: 40 });
@@ -255,7 +278,8 @@
       const sx = Number(p.x);
       const sy = Number(p.y);
       if (!sx && !sy) return;
-      const screen = mapToScreen(sx, sy, map);
+      const screen = mapToScreenUsingImage(sx, sy);
+      if (!screen) return;
       if (!Number.isFinite(screen.x) || !Number.isFinite(screen.y)) return;
       const value = Number(p.value) || 0;
       max = Math.max(max, value);
