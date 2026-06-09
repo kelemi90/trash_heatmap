@@ -175,6 +175,49 @@
     return colors;
   }
 
+  const pieCountLabelsPlugin = {
+    id: "pieCountLabels",
+    afterDatasetsDraw(chart) {
+      if (!chart || chart.config.type !== "doughnut") return;
+
+      const dataset =
+        chart.data && chart.data.datasets ? chart.data.datasets[0] : null;
+      const values = dataset && Array.isArray(dataset.data) ? dataset.data : [];
+      const meta = chart.getDatasetMeta(0);
+      if (!meta || !meta.data) return;
+
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.font = "700 11px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      meta.data.forEach((arc, i) => {
+        const value = Number(values[i]) || 0;
+        if (value <= 0) return;
+
+        const p = arc.tooltipPosition();
+        const text = String(value);
+        const textWidth = ctx.measureText(text).width;
+        const boxW = textWidth + 8;
+        const boxH = 14;
+        const x = p.x - boxW / 2;
+        const y = p.y - boxH / 2;
+
+        ctx.fillStyle = "rgba(255,255,255,0.94)";
+        ctx.strokeStyle = "rgba(0,0,0,0.2)";
+        ctx.lineWidth = 1;
+        ctx.fillRect(x, y, boxW, boxH);
+        ctx.strokeRect(x, y, boxW, boxH);
+
+        ctx.fillStyle = "#1f2937";
+        ctx.fillText(text, p.x, p.y + 0.5);
+      });
+
+      ctx.restore();
+    },
+  };
+
   function renderCharts(rows) {
     const labels = rows.map((r) => "Bin " + r.bin_id);
     const values = rows.map((r) => r.total_empties);
@@ -217,10 +260,9 @@
     const top = rows.slice(0, 10);
     pieChart = new Chart(pieCtx, {
       type: "doughnut",
+      plugins: [pieCountLabelsPlugin],
       data: {
-        labels: top.map(
-          (r) => "Bin " + r.bin_id + " (" + r.total_empties + ")",
-        ),
+        labels: top.map((r) => "Bin " + r.bin_id),
         datasets: [
           {
             data: top.map((r) => r.total_empties),
@@ -234,14 +276,6 @@
         plugins: {
           legend: {
             position: "bottom",
-          },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => {
-                const value = Number(ctx.raw) || 0;
-                return ctx.label + ": " + value + " empties";
-              },
-            },
           },
         },
       },
