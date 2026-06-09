@@ -6,6 +6,7 @@
   const map = document.getElementById("map");
   const heatLayer = document.getElementById("heatLayer");
   const markerLayer = document.getElementById("markerLayer");
+  const printMapComposite = document.getElementById("printMapComposite");
 
   const refreshBtn = document.getElementById("refreshBtn");
   const excelBtn = document.getElementById("excelBtn");
@@ -550,6 +551,86 @@
     });
   }
 
+  function drawRoundedRect(ctx, x, y, w, h, r) {
+    const rr = Math.max(0, Math.min(r, Math.min(w, h) / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+
+  function buildPrintComposite() {
+    if (!mapImg || !printMapComposite) return false;
+
+    const width = Math.max(1, Math.round(mapImg.clientWidth));
+    const height = Math.max(1, Math.round(mapImg.clientHeight));
+    if (!width || !height) return false;
+
+    const c = document.createElement("canvas");
+    c.width = width;
+    c.height = height;
+    const ctx = c.getContext("2d");
+    if (!ctx) return false;
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(mapImg, 0, 0, width, height);
+
+    const heatCanvas = heatLayer ? heatLayer.querySelector("canvas") : null;
+    if (heatCanvas) {
+      ctx.globalAlpha = 0.9;
+      ctx.drawImage(heatCanvas, 0, 0, width, height);
+      ctx.globalAlpha = 1;
+    }
+
+    if (markerLayer) {
+      const dots = markerLayer.querySelectorAll(".bin-marker");
+      dots.forEach((dot) => {
+        const x = Number.parseFloat(dot.style.left || "0");
+        const y = Number.parseFloat(dot.style.top || "0");
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = "#d62828";
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+
+      const labels = markerLayer.querySelectorAll(".bin-marker-label");
+      labels.forEach((label) => {
+        const x = Number.parseFloat(label.style.left || "0");
+        const y = Number.parseFloat(label.style.top || "0");
+        const text = (label.textContent || "").trim();
+        if (!Number.isFinite(x) || !Number.isFinite(y) || !text) return;
+
+        ctx.font = "700 11px Arial";
+        const tw = ctx.measureText(text).width;
+        const bw = tw + 8;
+        const bh = 15;
+
+        drawRoundedRect(ctx, x, y, bw, bh, 4);
+        ctx.fillStyle = "rgba(255,255,255,0.98)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(153,27,27,0.35)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = "#991b1b";
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "left";
+        ctx.fillText(text, x + 4, y + bh / 2);
+      });
+    }
+
+    printMapComposite.src = c.toDataURL("image/png");
+    return true;
+  }
+
   function downloadCsv(rows) {
     const head = ["bin_id", "total_empties"];
     const csvRows = [head].concat(rows.map((r) => [r.bin_id, r.total_empties]));
@@ -630,29 +711,38 @@
       if (heatRowsCache.length) renderHeatmap(heatRowsCache);
     };
 
+    const startPrint = (heatmapOnly) => {
+      if (heatmapOnly) document.body.classList.add("print-heatmap-only");
+      syncOverlaysForPrint();
+      if (buildPrintComposite())
+        document.body.classList.add("print-using-composite");
+      setTimeout(() => {
+        syncOverlaysForPrint();
+        if (buildPrintComposite())
+          document.body.classList.add("print-using-composite");
+        window.print();
+      }, 80);
+    };
+
     if (refreshBtn) refreshBtn.addEventListener("click", () => refreshReport());
     if (csvBtn) csvBtn.addEventListener("click", () => downloadCsv(reportRows));
     if (excelBtn)
       excelBtn.addEventListener("click", () => downloadExcel(reportRows));
-    if (printBtn) printBtn.addEventListener("click", () => window.print());
+    if (printBtn) printBtn.addEventListener("click", () => startPrint(false));
     if (printHeatmapBtn) {
-      printHeatmapBtn.addEventListener("click", () => {
-        document.body.classList.add("print-heatmap-only");
-        syncOverlaysForPrint();
-        setTimeout(() => {
-          syncOverlaysForPrint();
-          window.print();
-        }, 80);
-      });
+      printHeatmapBtn.addEventListener("click", () => startPrint(true));
     }
 
     // Re-align overlays right before print styles are captured.
     window.addEventListener("beforeprint", () => {
       syncOverlaysForPrint();
+      if (buildPrintComposite())
+        document.body.classList.add("print-using-composite");
     });
 
     window.addEventListener("afterprint", () => {
       document.body.classList.remove("print-heatmap-only");
+      document.body.classList.remove("print-using-composite");
     });
 
     let resizeTimer = null;

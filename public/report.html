@@ -334,6 +334,22 @@
           display: flex !important;
         }
 
+        body.print-using-composite #map {
+          display: none !important;
+        }
+
+        body.print-using-composite #printMapCompositeWrap {
+          display: block !important;
+          margin-top: 0;
+          border: none;
+        }
+
+        body.print-using-composite #printMapComposite {
+          display: block !important;
+          width: 100% !important;
+          height: auto !important;
+        }
+
         .grid {
           grid-template-columns: 1fr 1fr !important;
           gap: 10px;
@@ -425,6 +441,9 @@
             <img src="/map/pohjakartta.png" alt="Event map" />
             <div id="heatLayer"></div>
             <div id="markerLayer"></div>
+          </div>
+          <div id="printMapCompositeWrap" style="display: none">
+            <img id="printMapComposite" alt="Heatmap print composite" />
           </div>
           <div class="legend">
             <span>Low use</span>
