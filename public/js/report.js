@@ -1,6 +1,7 @@
 (function () {
   const reportMeta = document.getElementById("reportMeta");
   const usageTableBody = document.getElementById("usageTableBody");
+  const historyTableBody = document.getElementById("historyTableBody");
   const map = document.getElementById("map");
   const heatLayer = document.getElementById("heatLayer");
 
@@ -87,32 +88,41 @@
   function renderTable(rows) {
     usageTableBody.innerHTML = "";
     if (!rows.length) {
-      usageTableBody.innerHTML = '<tr><td colspan="6">No data</td></tr>';
+      usageTableBody.innerHTML = '<tr><td colspan="2">No data</td></tr>';
       return;
     }
 
     rows.forEach((r) => {
       const tr = document.createElement("tr");
       tr.innerHTML =
-        "<td>" +
-        r.bin_id +
-        "</td>" +
-        "<td>" +
-        r.total_empties +
-        "</td>" +
-        "<td>" +
-        formatLocal(r.last_emptied) +
-        "</td>" +
-        "<td>" +
-        (r.minutes_since_last === null ? "never" : r.minutes_since_last) +
-        "</td>" +
-        "<td>" +
-        r.x +
-        "</td>" +
-        "<td>" +
-        r.y +
-        "</td>";
+        "<td>" + r.bin_id + "</td>" + "<td>" + r.total_empties + "</td>";
       usageTableBody.appendChild(tr);
+    });
+  }
+
+  function renderHistory(logRows) {
+    if (!historyTableBody) return;
+
+    historyTableBody.innerHTML = "";
+    if (!Array.isArray(logRows) || !logRows.length) {
+      historyTableBody.innerHTML =
+        '<tr><td colspan="3">No emptying events</td></tr>';
+      return;
+    }
+
+    logRows.forEach((log) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>" +
+        (typeof log.id === "undefined" ? "" : log.id) +
+        "</td>" +
+        "<td>" +
+        (typeof log.bin_id === "undefined" ? "" : log.bin_id) +
+        "</td>" +
+        "<td>" +
+        formatLocal(log.timestamp) +
+        "</td>";
+      historyTableBody.appendChild(tr);
     });
   }
 
@@ -159,7 +169,16 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true } },
+        scales: {
+          x: {
+            ticks: {
+              autoSkip: false,
+              minRotation: 90,
+              maxRotation: 90,
+            },
+          },
+          y: { beginAtZero: true },
+        },
         plugins: { legend: { display: false } },
       },
     });
@@ -192,13 +211,40 @@
     const img = map.querySelector("img");
     if (!img) return;
     const rect = img.getBoundingClientRect();
+    heatLayer.style.position = "absolute";
+    heatLayer.style.left = "0px";
+    heatLayer.style.top = "0px";
     heatLayer.style.width = rect.width + "px";
     heatLayer.style.height = rect.height + "px";
+
+    if (
+      heatmap &&
+      heatmap._renderer &&
+      typeof heatmap._renderer.setDimensions === "function"
+    ) {
+      heatmap._renderer.setDimensions(
+        Math.max(1, Math.round(rect.width)),
+        Math.max(1, Math.round(rect.height)),
+      );
+    }
+
+    try {
+      Array.from(heatLayer.querySelectorAll("canvas")).forEach((c) => {
+        c.style.position = "absolute";
+        c.style.left = "0";
+        c.style.top = "0";
+        c.style.width = "100%";
+        c.style.height = "100%";
+        c.style.pointerEvents = "none";
+        c.style.zIndex = "2";
+      });
+    } catch (e) {}
   }
 
   function renderHeatmap(heatRows) {
     if (!heatmap) {
       heatmap = h337.create({ container: heatLayer, radius: 40 });
+      prepareHeatLayer();
     }
 
     const points = [];
@@ -288,20 +334,23 @@
   async function refreshReport() {
     setMeta();
 
-    const [statusRes, rankingRes, heatmapRes] = await Promise.all([
+    const [statusRes, rankingRes, heatmapRes, logsRes] = await Promise.all([
       fetch("/api/status"),
       fetch("/api/ranking"),
       fetch("/api/heatmap"),
+      fetch("/api/logs"),
     ]);
 
     const statusRows = await statusRes.json();
     const rankingRows = await rankingRes.json();
     const heatRows = await heatmapRes.json();
+    const logRows = await logsRes.json();
     heatRowsCache = Array.isArray(heatRows) ? heatRows : [];
 
     reportRows = normalizeRows(statusRows, rankingRows);
 
     renderTable(reportRows);
+    renderHistory(logRows);
     renderCharts(reportRows);
     prepareHeatLayer();
     renderHeatmap(heatRowsCache);
@@ -345,6 +394,10 @@
 
   init().catch(() => {
     usageTableBody.innerHTML =
-      '<tr><td colspan="6">Failed to load report data</td></tr>';
+      '<tr><td colspan="2">Failed to load report data</td></tr>';
+    if (historyTableBody) {
+      historyTableBody.innerHTML =
+        '<tr><td colspan="3">Failed to load report data</td></tr>';
+    }
   });
 })();
