@@ -351,13 +351,19 @@
         }
 
         .grid {
-          grid-template-columns: 1fr 1fr !important;
-          gap: 10px;
+          display: block !important;
+          gap: 0;
         }
 
         .chart-wrap {
-          height: 260px;
-          min-height: 260px;
+          height: auto;
+          min-height: 0;
+          margin-bottom: 10px;
+        }
+
+        .chart-wrap canvas {
+          min-height: 220px !important;
+          height: 220px !important;
         }
 
         .page {
@@ -380,8 +386,8 @@
         .chart-wrap,
         .map-container,
         table {
-          break-inside: avoid;
-          page-break-inside: avoid;
+          break-inside: auto;
+          page-break-inside: auto;
         }
 
         .table-wrap {
