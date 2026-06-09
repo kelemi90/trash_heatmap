@@ -206,12 +206,17 @@
         height: 12px;
         border-radius: 6px;
         border: 1px solid #b8c3ce;
-        background: linear-gradient(
-          90deg,
-          #2ecc71 0%,
-          #f1c40f 50%,
-          #e74c3c 100%
-        );
+        display: block;
+      }
+
+      .legend-bar svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .legend-label {
+        white-space: nowrap;
       }
 
       table {
@@ -351,19 +356,28 @@
         }
 
         .grid {
-          display: block !important;
-          gap: 0;
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+          gap: 8px;
+          align-items: start;
         }
 
         .chart-wrap {
-          height: auto;
-          min-height: 0;
-          margin-bottom: 10px;
+          height: 190px;
+          min-height: 190px;
+          margin-bottom: 0;
+          break-inside: avoid;
+          page-break-inside: avoid;
         }
 
         .chart-wrap canvas {
-          min-height: 220px !important;
-          height: 220px !important;
+          min-height: 140px !important;
+          height: 140px !important;
+        }
+
+        .panel h3 {
+          font-size: 16px;
+          margin-bottom: 6px;
         }
 
         .page {
@@ -388,6 +402,11 @@
         table {
           break-inside: auto;
           page-break-inside: auto;
+        }
+
+        .legend-bar {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
         }
 
         .table-wrap {
@@ -452,9 +471,34 @@
             <img id="printMapComposite" alt="Heatmap print composite" />
           </div>
           <div class="legend">
-            <span>Low use</span>
-            <span class="legend-bar" aria-hidden="true"></span>
-            <span>High use</span>
+            <span class="legend-label">Low use</span>
+            <span class="legend-bar" aria-hidden="true">
+              <svg viewBox="0 0 160 12" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient
+                    id="heatLegendGradient"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="0%"
+                  >
+                    <stop offset="0%" stop-color="#2ecc71" />
+                    <stop offset="50%" stop-color="#f1c40f" />
+                    <stop offset="100%" stop-color="#e74c3c" />
+                  </linearGradient>
+                </defs>
+                <rect
+                  x="0"
+                  y="0"
+                  width="160"
+                  height="12"
+                  rx="6"
+                  fill="url(#heatLegendGradient)"
+                  stroke="#b8c3ce"
+                />
+              </svg>
+            </span>
+            <span class="legend-label">High use</span>
           </div>
         </div>
 
