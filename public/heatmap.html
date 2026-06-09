@@ -1,64 +1,231 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
+  <head>
+    <title>Trash Heatmap</title>
 
-<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<title>Trash Heatmap</title>
+    <link rel="stylesheet" href="/css/style.css" />
 
-<link rel="stylesheet" href="/css/style.css">
+    <script src="/js/map.js"></script>
 
-<script src="/js/map.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/heatmapjs"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/heatmapjs"></script>
+    <style>
+      body {
+        margin: 0;
+        background: #eef1f4;
+      }
 
-</head>
+      .report-wrap {
+        max-width: 980px;
+        margin: 24px auto;
+        padding: 18px;
+        background: #fff;
+        border: 1px solid #d9dee3;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      }
 
-<body>
+      .report-header h1 {
+        margin: 0;
+        font-size: 28px;
+      }
 
-<h2>Trash Heatmap</h2>
+      .report-meta {
+        margin: 8px 0 0;
+        font-size: 14px;
+        color: #4f5c68;
+      }
 
-<div class="map-container" id="map">
+      .toolbar {
+        margin: 14px 0 16px;
+        display: flex;
+        gap: 10px;
+      }
 
-<img src="/map/pohjakartta.png">
+      .toolbar button {
+        padding: 8px 14px;
+        border: 1px solid #1d5fa7;
+        background: #1f6fc2;
+        color: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      }
 
-<div id="heatLayer" style="position:absolute;top:0;left:0;width:100%;height:100%"></div>
+      .toolbar button:hover {
+        background: #1a5ca2;
+      }
 
-</div>
+      .map-container {
+        position: relative;
+        display: block;
+        width: 100%;
+      }
 
-<script>
+      .map-container img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
 
-const map = document.getElementById("map")
+      #heatLayer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+      }
 
-const heatmap = h337.create({
-container: document.getElementById("heatLayer"),
-radius:40
-})
+      .legend {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #2d3a45;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
 
-fetch("/api/heatmap")
-.then(r=>r.json())
-.then(data=>{
+      .legend-bar {
+        width: 160px;
+        height: 12px;
+        border-radius: 6px;
+        background: linear-gradient(
+          90deg,
+          #2ecc71 0%,
+          #f1c40f 50%,
+          #e74c3c 100%
+        );
+        border: 1px solid #b9c2cb;
+      }
 
-const points = data.map(p=>{
+      @page {
+        size: A4 portrait;
+        margin: 10mm;
+      }
 
-const screen = mapToScreen(p.x,p.y,map)
+      @media print {
+        body {
+          background: #fff;
+        }
 
-return {
-x:screen.x,
-y:screen.y,
-value:p.value
-}
+        .report-wrap {
+          margin: 0;
+          padding: 0;
+          max-width: none;
+          border: none;
+          box-shadow: none;
+        }
 
-})
+        .toolbar {
+          display: none;
+        }
 
-heatmap.setData({
-max:100,
-data:points
-})
+        .map-container,
+        .map-container img {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
 
-})
+  <body>
+    <main class="report-wrap">
+      <header class="report-header">
+        <h1>Trash Heatmap</h1>
+        <p class="report-meta" id="reportMeta"></p>
+      </header>
 
-</script>
+      <div class="toolbar">
+        <button type="button" id="printBtn">Print report</button>
+      </div>
 
-</body>
+      <div class="map-container" id="map">
+        <img src="/map/pohjakartta.png" />
 
+        <div id="heatLayer"></div>
+      </div>
+
+      <div class="legend">
+        <span>Low use</span>
+        <span class="legend-bar" aria-hidden="true"></span>
+        <span>High use</span>
+      </div>
+    </main>
+
+    <script>
+      const map = document.getElementById("map");
+      const heatLayer = document.getElementById("heatLayer");
+      const reportMeta = document.getElementById("reportMeta");
+      const printBtn = document.getElementById("printBtn");
+
+      let heatmap = null;
+
+      function formatNow() {
+        const now = new Date();
+        return new Intl.DateTimeFormat("fi-FI", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(now);
+      }
+
+      function setReportMeta() {
+        reportMeta.textContent = "Generated: " + formatNow();
+      }
+
+      function renderHeatmap(data) {
+        const points = [];
+        let maxValue = 1;
+
+        data.forEach((p) => {
+          if (!p) return;
+          const screen = mapToScreen(p.x, p.y, map);
+          if (!Number.isFinite(screen.x) || !Number.isFinite(screen.y)) return;
+          const value = Number(p.value) || 0;
+          maxValue = Math.max(maxValue, value);
+          points.push({
+            x: Math.round(screen.x),
+            y: Math.round(screen.y),
+            value,
+          });
+        });
+
+        heatmap.setData({
+          max: maxValue,
+          data: points,
+        });
+      }
+
+      function loadHeatmap() {
+        fetch("/api/heatmap")
+          .then((r) => r.json())
+          .then((data) => {
+            renderHeatmap(data);
+          });
+      }
+
+      function init() {
+        setReportMeta();
+
+        if (printBtn) {
+          printBtn.addEventListener("click", () => window.print());
+        }
+
+        heatmap = h337.create({
+          container: heatLayer,
+          radius: 40,
+        });
+
+        const img = map.querySelector("img");
+        if (img && !img.complete) {
+          img.addEventListener("load", () => loadHeatmap(), { once: true });
+          return;
+        }
+        loadHeatmap();
+      }
+
+      init();
+    </script>
+  </body>
 </html>

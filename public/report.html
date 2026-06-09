@@ -1,0 +1,248 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bin Usage Report</title>
+
+    <link rel="stylesheet" href="/css/style.css" />
+    <script src="/js/map.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/heatmapjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <style>
+      body {
+        margin: 0;
+        background: #eef2f6;
+        color: #1e2a35;
+      }
+
+      .page {
+        max-width: 1200px;
+        margin: 20px auto 30px;
+        padding: 0 16px;
+      }
+
+      .card {
+        background: #fff;
+        border: 1px solid #d7dee6;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+        padding: 14px;
+      }
+
+      .title-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+      }
+
+      h1 {
+        margin: 10px 0 2px;
+        font-size: 28px;
+      }
+
+      .meta {
+        color: #4d5c6b;
+        font-size: 14px;
+      }
+
+      .toolbar {
+        margin: 12px 0 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      button {
+        padding: 8px 12px;
+        border: 1px solid #1b5fa8;
+        background: #1f6fc2;
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #19599d;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .chart-wrap {
+        min-height: 280px;
+      }
+
+      .map-container {
+        margin-top: 12px;
+        position: relative;
+      }
+
+      .map-container img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      #heatLayer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+      }
+
+      .legend {
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: #2f3d4c;
+      }
+
+      .legend-bar {
+        width: 160px;
+        height: 12px;
+        border-radius: 6px;
+        border: 1px solid #b8c3ce;
+        background: linear-gradient(
+          90deg,
+          #2ecc71 0%,
+          #f1c40f 50%,
+          #e74c3c 100%
+        );
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+        font-size: 14px;
+        background: #fff;
+      }
+
+      th,
+      td {
+        border: 1px solid #e1e7ed;
+        padding: 8px;
+        text-align: left;
+      }
+
+      th {
+        background: #f4f8fb;
+      }
+
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @page {
+        size: A4 portrait;
+        margin: 10mm;
+      }
+
+      @media print {
+        body {
+          background: #fff;
+        }
+
+        .page {
+          max-width: none;
+          margin: 0;
+          padding: 0;
+        }
+
+        .card {
+          border: none;
+          box-shadow: none;
+          padding: 0;
+        }
+
+        #navbar,
+        .toolbar {
+          display: none;
+        }
+
+        .chart-wrap,
+        .map-container,
+        table {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="navbar"></div>
+
+    <main class="page">
+      <section class="card">
+        <div class="title-row">
+          <h1>Bin Usage Report</h1>
+          <p class="meta" id="reportMeta"></p>
+        </div>
+
+        <div class="toolbar">
+          <button type="button" id="refreshBtn">Refresh data</button>
+          <button type="button" id="excelBtn">Download Excel</button>
+          <button type="button" id="csvBtn">Download CSV</button>
+          <button type="button" id="printBtn">Print report</button>
+        </div>
+
+        <div class="grid">
+          <div class="card chart-wrap">
+            <h3>Empties Per Bin</h3>
+            <canvas id="barChart"></canvas>
+          </div>
+          <div class="card chart-wrap">
+            <h3>Usage Share (Top 10)</h3>
+            <canvas id="pieChart"></canvas>
+          </div>
+        </div>
+
+        <div class="map-container" id="map">
+          <img src="/map/pohjakartta.png" alt="Event map" />
+          <div id="heatLayer"></div>
+        </div>
+        <div class="legend">
+          <span>Low use</span>
+          <span class="legend-bar" aria-hidden="true"></span>
+          <span>High use</span>
+        </div>
+
+        <h3 style="margin-top: 16px">Bin Usage Table</h3>
+        <table id="usageTable">
+          <thead>
+            <tr>
+              <th>Bin ID</th>
+              <th>Total Empties</th>
+              <th>Last Emptied</th>
+              <th>Minutes Since Last</th>
+              <th>Map X</th>
+              <th>Map Y</th>
+            </tr>
+          </thead>
+          <tbody id="usageTableBody">
+            <tr>
+              <td colspan="6">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <script src="/js/site.js"></script>
+    <script src="/js/report.js"></script>
+  </body>
+</html>
