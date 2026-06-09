@@ -633,18 +633,9 @@
     if (printHeatmapBtn) {
       printHeatmapBtn.addEventListener("click", () => {
         document.body.classList.add("print-heatmap-only");
-        ensureHeatLayerSized();
-        if (statusRowsCache.length) renderMarkers(statusRowsCache);
-        if (heatRowsCache.length) renderHeatmap(heatRowsCache);
         window.print();
       });
     }
-
-    window.addEventListener("beforeprint", () => {
-      ensureHeatLayerSized();
-      if (statusRowsCache.length) renderMarkers(statusRowsCache);
-      if (heatRowsCache.length) renderHeatmap(heatRowsCache);
-    });
 
     window.addEventListener("afterprint", () => {
       document.body.classList.remove("print-heatmap-only");

@@ -268,31 +268,32 @@
         margin: 10mm;
       }
 
-      @page landscapePage {
-        size: A4 landscape;
-        margin: 10mm;
-      }
-
-      @page portraitPage {
-        size: A4 portrait;
-        margin: 10mm;
-      }
-
       @media print {
         body {
           background: #fff;
         }
 
-        .print-landscape {
-          page: landscapePage;
-          break-before: avoid-page;
-          page-break-before: auto;
+        body.print-heatmap-only .title-row,
+        body.print-heatmap-only .section-note,
+        body.print-heatmap-only .grid,
+        body.print-heatmap-only .split-tables {
+          display: none !important;
         }
 
-        .print-portrait {
-          page: portraitPage;
-          break-before: page;
-          page-break-before: always;
+        body.print-heatmap-only .card {
+          padding: 0;
+        }
+
+        body.print-heatmap-only #heatmapSection {
+          display: block !important;
+        }
+
+        body.print-heatmap-only .map-container {
+          margin-top: 0;
+        }
+
+        body.print-heatmap-only .legend {
+          display: flex !important;
         }
 
         .grid {
@@ -303,28 +304,6 @@
         .chart-wrap {
           height: 260px;
           min-height: 260px;
-        }
-
-        /* Keep charts on first landscape page and map on second landscape page */
-        .print-landscape .map-container {
-          break-before: page;
-          page-break-before: always;
-          width: 100%;
-          max-height: 175mm;
-          border: none;
-          border-radius: 0;
-          overflow: hidden;
-        }
-
-        .print-landscape .map-container img {
-          width: auto !important;
-          max-width: 100%;
-          height: auto !important;
-          max-height: 170mm;
-        }
-
-        .print-landscape .legend {
-          margin-top: 6px;
         }
 
         .page {
@@ -355,24 +334,6 @@
           max-height: none;
           overflow: visible;
           border: none;
-        }
-
-        body.print-heatmap-only .title-row,
-        body.print-heatmap-only .section-note,
-        body.print-heatmap-only .grid,
-        body.print-heatmap-only .split-tables,
-        body.print-heatmap-only .toolbar {
-          display: none !important;
-        }
-
-        body.print-heatmap-only .print-landscape {
-          page: landscapePage;
-          break-before: auto;
-          page-break-before: auto;
-        }
-
-        body.print-heatmap-only .print-landscape > h3 {
-          margin-top: 0 !important;
         }
       }
     </style>
@@ -409,18 +370,18 @@
           <button type="button" id="printHeatmapBtn">Print heatmap only</button>
         </div>
 
-        <div class="print-landscape">
-          <div class="grid">
-            <div class="panel chart-wrap">
-              <h3>Empties Per Bin</h3>
-              <canvas id="barChart"></canvas>
-            </div>
-            <div class="panel chart-wrap">
-              <h3>Usage Share (Top 10)</h3>
-              <canvas id="pieChart"></canvas>
-            </div>
+        <div class="grid">
+          <div class="panel chart-wrap">
+            <h3>Empties Per Bin</h3>
+            <canvas id="barChart"></canvas>
           </div>
+          <div class="panel chart-wrap">
+            <h3>Usage Share (Top 10)</h3>
+            <canvas id="pieChart"></canvas>
+          </div>
+        </div>
 
+        <div id="heatmapSection">
           <h3 style="margin: 16px 0 0">Heatmap</h3>
           <div class="map-container" id="map">
             <img src="/map/pohjakartta.png" alt="Event map" />
@@ -434,7 +395,7 @@
           </div>
         </div>
 
-        <div class="split-tables print-portrait">
+        <div class="split-tables">
           <div>
             <h3 style="margin: 0">Bin Usage Table</h3>
             <div class="table-wrap">
