@@ -13,6 +13,7 @@
   let pieChart = null;
   let heatmap = null;
   let reportRows = [];
+  let heatRowsCache = [];
 
   function parseTimestamp(ts) {
     if (!ts) return null;
@@ -296,13 +297,14 @@
     const statusRows = await statusRes.json();
     const rankingRows = await rankingRes.json();
     const heatRows = await heatmapRes.json();
+    heatRowsCache = Array.isArray(heatRows) ? heatRows : [];
 
     reportRows = normalizeRows(statusRows, rankingRows);
 
     renderTable(reportRows);
     renderCharts(reportRows);
     prepareHeatLayer();
-    renderHeatmap(heatRows);
+    renderHeatmap(heatRowsCache);
   }
 
   function wireEvents() {
@@ -312,9 +314,13 @@
       excelBtn.addEventListener("click", () => downloadExcel(reportRows));
     if (printBtn) printBtn.addEventListener("click", () => window.print());
 
+    let resizeTimer = null;
     window.addEventListener("resize", () => {
-      prepareHeatLayer();
-      refreshReport().catch(() => {});
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        prepareHeatLayer();
+        if (heatRowsCache.length) renderHeatmap(heatRowsCache);
+      }, 120);
     });
   }
 

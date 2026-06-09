@@ -78,7 +78,20 @@
       }
 
       .chart-wrap {
-        min-height: 280px;
+        height: 340px;
+        min-height: 340px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .chart-wrap h3 {
+        margin: 0 0 8px;
+      }
+
+      .chart-wrap canvas {
+        flex: 1;
+        min-height: 0;
+        width: 100% !important;
       }
 
       .map-container {
@@ -125,9 +138,17 @@
       table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 12px;
+        margin-top: 0;
         font-size: 14px;
         background: #fff;
+      }
+
+      .table-wrap {
+        margin-top: 12px;
+        max-height: 430px;
+        overflow: auto;
+        border: 1px solid #e1e7ed;
+        border-radius: 8px;
       }
 
       th,
@@ -139,11 +160,19 @@
 
       th {
         background: #f4f8fb;
+        position: sticky;
+        top: 0;
+        z-index: 1;
       }
 
       @media (max-width: 900px) {
         .grid {
           grid-template-columns: 1fr;
+        }
+
+        .chart-wrap {
+          height: 300px;
+          min-height: 300px;
         }
       }
 
@@ -179,6 +208,12 @@
         table {
           break-inside: avoid;
           page-break-inside: avoid;
+        }
+
+        .table-wrap {
+          max-height: none;
+          overflow: visible;
+          border: none;
         }
       }
     </style>
@@ -222,23 +257,25 @@
         </div>
 
         <h3 style="margin-top: 16px">Bin Usage Table</h3>
-        <table id="usageTable">
-          <thead>
-            <tr>
-              <th>Bin ID</th>
-              <th>Total Empties</th>
-              <th>Last Emptied</th>
-              <th>Minutes Since Last</th>
-              <th>Map X</th>
-              <th>Map Y</th>
-            </tr>
-          </thead>
-          <tbody id="usageTableBody">
-            <tr>
-              <td colspan="6">Loading...</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-wrap">
+          <table id="usageTable">
+            <thead>
+              <tr>
+                <th>Bin ID</th>
+                <th>Total Empties</th>
+                <th>Last Emptied</th>
+                <th>Minutes Since Last</th>
+                <th>Map X</th>
+                <th>Map Y</th>
+              </tr>
+            </thead>
+            <tbody id="usageTableBody">
+              <tr>
+                <td colspan="6">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     </main>
 
