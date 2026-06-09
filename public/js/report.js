@@ -377,9 +377,53 @@
     heatmap.setData({ max, data: points });
   }
 
+  function rectsOverlap(a, b, padding = 2) {
+    return !(
+      a.right + padding <= b.left ||
+      a.left >= b.right + padding ||
+      a.bottom + padding <= b.top ||
+      a.top >= b.bottom + padding
+    );
+  }
+
+  function outOfBounds(rect, width, height) {
+    return (
+      rect.left < 0 ||
+      rect.top < 0 ||
+      rect.right > width ||
+      rect.bottom > height
+    );
+  }
+
+  function countCollisions(rect, occupiedRects) {
+    let c = 0;
+    occupiedRects.forEach((r) => {
+      if (rectsOverlap(rect, r)) c += 1;
+    });
+    return c;
+  }
+
+  function labelCandidates(x, y, w, h, dotR, gap) {
+    return [
+      { left: x - w / 2, top: y - dotR - gap - h, pref: 0 },
+      { left: x - w / 2 - 10, top: y - dotR - gap - h, pref: 1 },
+      { left: x - w / 2 + 10, top: y - dotR - gap - h, pref: 2 },
+      { left: x - w / 2, top: y + dotR + gap, pref: 3 },
+      { left: x - w / 2 - 10, top: y + dotR + gap, pref: 4 },
+      { left: x - w / 2 + 10, top: y + dotR + gap, pref: 5 },
+      { left: x + dotR + gap, top: y - h / 2, pref: 10 },
+      { left: x - dotR - gap - w, top: y - h / 2, pref: 11 },
+    ];
+  }
+
   function renderMarkers(statusRows) {
     if (!markerLayer) return;
     markerLayer.innerHTML = "";
+    const occupiedRects = [];
+    const layerWidth = Math.max(1, markerLayer.clientWidth || 0);
+    const layerHeight = Math.max(1, markerLayer.clientHeight || 0);
+    const dotRadius = 5;
+    const labelGap = 4;
 
     const rows = Array.isArray(statusRows) ? statusRows : [];
     rows.forEach((bin) => {
@@ -399,8 +443,58 @@
       marker.className = "bin-marker";
       marker.style.left = Math.round(screen.x) + "px";
       marker.style.top = Math.round(screen.y) + "px";
-      marker.textContent = String(id);
       markerLayer.appendChild(marker);
+
+      const dotRect = {
+        left: screen.x - dotRadius,
+        top: screen.y - dotRadius,
+        right: screen.x + dotRadius,
+        bottom: screen.y + dotRadius,
+      };
+      occupiedRects.push(dotRect);
+
+      const label = document.createElement("div");
+      label.className = "bin-marker-label";
+      label.textContent = String(id);
+      markerLayer.appendChild(label);
+
+      const labelW = Math.max(12, label.offsetWidth || 12);
+      const labelH = Math.max(12, label.offsetHeight || 12);
+      const candidates = labelCandidates(
+        screen.x,
+        screen.y,
+        labelW,
+        labelH,
+        dotRadius,
+        labelGap,
+      );
+
+      let best = null;
+      let bestScore = Number.POSITIVE_INFINITY;
+      candidates.forEach((c) => {
+        const rect = {
+          left: c.left,
+          top: c.top,
+          right: c.left + labelW,
+          bottom: c.top + labelH,
+        };
+        const collisions = countCollisions(rect, occupiedRects);
+        const oobPenalty = outOfBounds(rect, layerWidth, layerHeight) ? 100 : 0;
+        const score = collisions * 10 + oobPenalty + c.pref;
+        if (score < bestScore) {
+          bestScore = score;
+          best = rect;
+        }
+      });
+
+      if (!best) {
+        label.remove();
+        return;
+      }
+
+      label.style.left = Math.round(best.left) + "px";
+      label.style.top = Math.round(best.top) + "px";
+      occupiedRects.push(best);
     });
   }
 
