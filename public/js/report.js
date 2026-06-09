@@ -293,16 +293,23 @@
         return;
       }
 
+      const containerRect = map.getBoundingClientRect();
+      // Absolute children are positioned from the padding box (content origin),
+      // not from the border box returned by getBoundingClientRect.
+      const contentOffsetX =
+        imgRect.left - (containerRect.left + map.clientLeft);
+      const contentOffsetY = imgRect.top - (containerRect.top + map.clientTop);
+
       heatLayer.style.position = "absolute";
-      heatLayer.style.left = "0px";
-      heatLayer.style.top = "0px";
+      heatLayer.style.left = Math.round(contentOffsetX) + "px";
+      heatLayer.style.top = Math.round(contentOffsetY) + "px";
       heatLayer.style.width = imgRect.width + "px";
       heatLayer.style.height = imgRect.height + "px";
 
       if (markerLayer) {
         markerLayer.style.position = "absolute";
-        markerLayer.style.left = "0px";
-        markerLayer.style.top = "0px";
+        markerLayer.style.left = Math.round(contentOffsetX) + "px";
+        markerLayer.style.top = Math.round(contentOffsetY) + "px";
         markerLayer.style.width = imgRect.width + "px";
         markerLayer.style.height = imgRect.height + "px";
       }
@@ -399,8 +406,9 @@
       imgRect.width / (typeof MAP_WIDTH !== "undefined" ? MAP_WIDTH : 1);
     const scaleY =
       imgRect.height / (typeof MAP_HEIGHT !== "undefined" ? MAP_HEIGHT : 1);
-    const offsetX = imgRect.left - containerRect.left;
-    const offsetY = imgRect.top - containerRect.top;
+    // Convert to map content-box coordinates to match absolute overlay origin.
+    const offsetX = imgRect.left - (containerRect.left + map.clientLeft);
+    const offsetY = imgRect.top - (containerRect.top + map.clientTop);
 
     return {
       x: Math.round(Number(x) * scaleX + offsetX),
@@ -633,9 +641,19 @@
     if (printHeatmapBtn) {
       printHeatmapBtn.addEventListener("click", () => {
         document.body.classList.add("print-heatmap-only");
+        ensureHeatLayerSized();
+        if (statusRowsCache.length) renderMarkers(statusRowsCache);
+        if (heatRowsCache.length) renderHeatmap(heatRowsCache);
         window.print();
       });
     }
+
+    // Re-align overlays right before print styles are captured.
+    window.addEventListener("beforeprint", () => {
+      ensureHeatLayerSized();
+      if (statusRowsCache.length) renderMarkers(statusRowsCache);
+      if (heatRowsCache.length) renderHeatmap(heatRowsCache);
+    });
 
     window.addEventListener("afterprint", () => {
       document.body.classList.remove("print-heatmap-only");
