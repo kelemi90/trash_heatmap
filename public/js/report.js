@@ -624,6 +624,12 @@
   }
 
   function wireEvents() {
+    const syncOverlaysForPrint = () => {
+      ensureHeatLayerSized();
+      if (statusRowsCache.length) renderMarkers(statusRowsCache);
+      if (heatRowsCache.length) renderHeatmap(heatRowsCache);
+    };
+
     if (refreshBtn) refreshBtn.addEventListener("click", () => refreshReport());
     if (csvBtn) csvBtn.addEventListener("click", () => downloadCsv(reportRows));
     if (excelBtn)
@@ -632,18 +638,17 @@
     if (printHeatmapBtn) {
       printHeatmapBtn.addEventListener("click", () => {
         document.body.classList.add("print-heatmap-only");
-        ensureHeatLayerSized();
-        if (statusRowsCache.length) renderMarkers(statusRowsCache);
-        if (heatRowsCache.length) renderHeatmap(heatRowsCache);
-        window.print();
+        syncOverlaysForPrint();
+        setTimeout(() => {
+          syncOverlaysForPrint();
+          window.print();
+        }, 80);
       });
     }
 
     // Re-align overlays right before print styles are captured.
     window.addEventListener("beforeprint", () => {
-      ensureHeatLayerSized();
-      if (statusRowsCache.length) renderMarkers(statusRowsCache);
-      if (heatRowsCache.length) renderHeatmap(heatRowsCache);
+      syncOverlaysForPrint();
     });
 
     window.addEventListener("afterprint", () => {

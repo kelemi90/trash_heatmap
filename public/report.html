@@ -273,6 +273,41 @@
           background: #fff;
         }
 
+        .map-container {
+          border: none;
+          border-radius: 0;
+          overflow: hidden;
+          position: relative;
+        }
+
+        .map-container img {
+          display: block;
+          width: 100% !important;
+          height: auto !important;
+          position: relative;
+          z-index: 1;
+        }
+
+        #heatLayer,
+        #markerLayer {
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+        }
+
+        #heatLayer canvas {
+          left: 0 !important;
+          top: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+        }
+
         body.print-heatmap-only .title-row,
         body.print-heatmap-only .section-note,
         body.print-heatmap-only .grid,
