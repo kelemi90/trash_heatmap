@@ -1,415 +1,159 @@
-# Trash Heatmap
+# Roska-astiajärjestelmä
 
-[![build status](https://img.shields.io/badge/build-local-brightgreen.svg)](https://github.com/kelemi90/trash_heatmap)
-[![tests](https://img.shields.io/badge/tests-none-lightgrey.svg)](#)
+Trash Heatmap seuraa tapahtumissa roska-astioiden tyhjennystä. Työntekijä kirjaa tyhjennyksen astiaan kiinnitetyn QR-koodin kautta. Järjestelmä tallentaa tapahtuman ja näyttää astioiden käytön koontinäkymissä.
 
-Trash Heatmap is a lightweight event management system for tracking when trash bins are emptied during large indoor events.
+Suositeltu käyttötapa on Docker Compose, joka käynnistää sovelluksen ja Redis-istuntopalvelun. Sovellus toimii myös suoraan Node.js:llä, kun Redis on käytettävissä.
 
-Workers scan a QR code attached to each trash bin and log when the bin has been emptied. The system collects this data and generates insights such as:
+## Miten järjestelmä toimii
 
-- Heatmaps of bin usage
-- Worker activity tracking
-- Most frequently emptied bins
-- Recommendations for optimal bin placement next year
+1. QR-koodi avaa astian kirjaussivun osoitteessa `/bin.html?bin=<astianumero>`.
+2. Työntekijä valitaan käyttäjänimellä. Selain muistaa viimeksi käytetyn nimen; hyväksytty nimi kirjataan automaattisesti sivua avattaessa. Uusi tai vaihdettu nimi annetaan sivulla.
+3. Palvelin tarkistaa käyttäjänimen käyttäjätaulusta kirjainkoosta riippumatta ja tallentaa tapahtumaan tietokannasta löytyvän nimen, astianumeron ja aikaleiman.
+4. Saman astian uutta tyhjennystä ei hyväksytä 10 minuuttiin edellisestä kirjauksesta. Esto koskee kaikkia käyttäjiä.
+5. Koontinäkymät lukevat tietokannasta astioiden sijainnit, viimeisimmät tyhjennykset, käyttäjien aktiivisuuden ja astioiden käyttökerrat.
 
-The system is designed to run on a **local Ubuntu laptop server** inside the event network.
+Hallintapaneelissa ylläpidetään käyttäjiä, astioiden sijainteja, QR-tarroja ja kirjauksia. Hallintakirjautuminen luo palvelinistunnon, jota säilytetään Redisissä.
 
----
+## Käyttöönotto Dockerilla
 
-# Features
+Tarvitset Docker Enginen tai Docker Desktopin sekä Docker Compose v2:n.
 
-### QR Code Bin Logging
-Each trash bin has a QR code.
+1. Luo `.env` mallista, jos tiedostoa ei vielä ole. Älä korvaa olemassa olevaa `.env`-tiedostoa:
 
-When scanned, the worker is taken to a logging page where they confirm:
+   ```powershell
+   Copy-Item .env.example .env
+   ```
 
-- bin number
-- their username
+   Linuxissa tai macOS:ssa komento on `cp .env.example .env`.
 
-The system logs:
+2. Aseta `.env`-tiedostoon oma vahva `ADMIN_PASSWORD`. Luo myös satunnainen `SESSION_SECRET`; esimerkiksi Node.js:llä:
 
-- worker name
-- bin ID
-- timestamp
+   ```bash
+   node -p "require('crypto').randomBytes(32).toString('hex')"
+   ```
 
----
+3. Käynnistä sovellus ja Redis:
 
-### Smart Duplicate Protection
+   ```bash
+   docker compose up --build -d
+   docker compose ps
+   docker compose logs -f app
+   ```
 
-To prevent accidental double logging:
+4. Avaa `http://localhost:3001/dashboard.html`.
 
-- Same worker cannot log the same bin within **2 minutes**
+Docker-kuva käyttää Node.js 26:ta. Säiliö luo puuttuvat astiat 0–55 käynnistyessään. Tietokanta ja lokit säilyvät projektin `database/`- ja `logs/`-hakemistoissa; Redis-istunnot säilyvät Docker-volyymissa.
 
----
+Pysäytä säiliöt komennolla `docker compose down`. Se ei poista tietokantaa, lokitiedostoja eikä Redis-volyymia. Komento `docker compose down -v` poistaa Redis-volyymin ja sen istuntotiedot.
 
-### Admin Panel
+### Käyttö tapahtumaverkossa
 
-Admin can:
+Toisilta laitteilta käytettävää osoitetta varten aseta `.env`-tiedostoon palvelimen verkko-osoite `PUBLIC_HOST`- ja `QR_HOST`-muuttujiin. Aseta lisäksi `PUBLIC_PROTOCOL` ja `QR_PROTOCOL` arvoon `http` tai `https`. HTTPS-asennuksessa TLS-yhteys päätetään esimerkiksi käänteisessä välityspalvelimessa. Salli palomuurissa valittu `HOST_PORT` (oletus `3001`).
 
-- Add workers
-- Delete workers
-- View registered users
-
-Protected login required.
-
-Default admin login:
-username: Buildcat
-password: buildcat
-
----
-
-### Drag & Drop Bin Placement
-
-Saturday June 6 2026
-# Trash Heatmap
-
-Trash Heatmap is a lightweight local web app for tracking when trash bins are emptied during an event. Workers scan a QR code on a bin and the system records the empties. The data is used to build heatmaps, worker activity views, and simple reports to help optimize bin placement.
-
-This repo is intended to run on a local development machine or event laptop inside the venue network.
-
-----
-
-## What changed (recent edits)
-
-- Dashboard JavaScript moved from inline HTML into `public/js/dashboard.js`.
-- Heatmap overlay implemented using `heatmap.js` and aligned to the map image.
-- Admin protection: `bin_editor.html` and `qr_labels.html` are now protected server-side and redirect to `/admin_login.html` when the user is not logged in.
-- Client helper `public/js/site.js` exposes `markActiveNav()` and `adjustNavbarAuth()` (hides admin links for logged-out users and toggles Login/Logout UI).
-- New charts page `public/bin_times.html` (Chart.js) with CSV export of bins & logs and interactive filtering.
-- Server logging added: `logs/server.log` records requests and server errors.
-
-----
-
-## Features
-
-- QR code based bin logging (workers scan and log empties)
-- Heatmap visualization of bin usage
-- Live-ish dashboard with worker activity and top-used bins
-- Drag & drop bin placement editor (admin)
-- Protected admin pages (session login)
-- CSV export for bins and logs; Chart.js visualizations
-
-----
-
-## Quickstart (development)
-
-Clone and install:
-```bash
-git clone https://github.com/kelemi90/trash_heatmap.git
-cd trash_heatmap
-npm install
-```
-
-Start the server:
-```bash
-node server/server.js
-```
-
-The server listens on port 3001 by default. It logs the local network address on startup, for example `http://192.168.50.37:3001`.
-
-Open the dashboard in a browser:
-```
-http://localhost:3001/dashboard.html
-```
-
-----
-
-## How to update server after code changes
-
-Use this checklist each time you modify code and want to deploy to the server.
-
-### 1) Commit and push from development machine
+Kun asetuksia muutetaan, luo sovelluskuva uudelleen ja käynnistä palvelut:
 
 ```bash
-git add .
-git commit -m "Describe your change"
-git push origin main
+docker compose up --build -d
 ```
 
-### 2) Update code on the server
+## Käyttö
+
+### Työntekijä
+
+- Skannaa astiaan kiinnitetty QR-koodi puhelimella.
+- Ensimmäisellä käyttökerralla anna hyväksytty käyttäjänimi ja valitse **Empty the bin**. Selain tallentaa nimen ja yrittää kirjata tyhjennyksen automaattisesti seuraavilla QR-koodin avauskerroilla. Tarkista nimi ennen skannausta; voit vaihtaa sen **Change User** -painikkeella.
+- Jos nimi ei ole hyväksytty, pyydä ylläpitäjää lisäämään se hallintapaneelissa.
+- Jos astia on kirjattu viimeisen 10 minuutin aikana, odota sivulla ilmoitettu aika ennen uutta kirjausta.
+
+### Ylläpitäjä
+
+- Avaa `/admin_login.html` ja kirjaudu `.env`-tiedoston `ADMIN_USERNAME`- ja `ADMIN_PASSWORD`-tiedoilla.
+- Hallintapaneelissa (`/admin.html`) voit lisätä tai poistaa työntekijöitä, tarkastella kirjauksia sekä palauttaa astioiden sijainnit lähtöpaikkaan.
+- Astioiden sijainteja muokataan sivulla `/bin_editor.html`; QR-tarroja hallitaan sivulla `/qr_labels.html`.
+- Kirjauslokien tyhjennys ja astioiden sijaintien palautus luovat JSON-varmuuskopion hakemistoon `database/backups/`.
+- Kirjauslokien tyhjennys vaatii ensin hallintapaneelissa asetetun nimimerkin. Nimimerkki tallennetaan auditointia varten.
+
+## Ajo ilman Dockeria
+
+Asenna Node.js 26, npm ja Redis. Suorita komennot projektin juurihakemistossa, koska tietokannan polku on suhteellinen nykyiseen hakemistoon.
 
 ```bash
-cd /path/to/trash_heatmap
-git pull --ff-only origin main
+npm ci
+node scripts/createBins.js
+npm start
 ```
 
-If your server is Windows, run this once to avoid long path issues:
+Varmista ennen käynnistystä, että juuren `.env` sisältää ainakin `ADMIN_USERNAME`, `ADMIN_PASSWORD` ja vahvan `SESSION_SECRET`-arvon. Oletuksena sovellus etsii Redis-palvelinta osoitteesta `redis://127.0.0.1:6379`; osoitteen voi vaihtaa `REDIS_URL`-muuttujalla. Palvelin kuuntelee oletuksena porttia 3001.
+
+## Asetukset
+
+| Muuttuja                         | Käyttö                                         | Oletus                         |
+| -------------------------------- | ---------------------------------------------- | ------------------------------ |
+| `ADMIN_USERNAME`                 | Hallintakirjautumisen käyttäjänimi             | Ei oletusta                    |
+| `ADMIN_PASSWORD`                 | Hallintakirjautumisen salasana                 | Ei oletusta                    |
+| `SESSION_SECRET`                 | Istuntoevästeen allekirjoitusavain             | Asetettava itse                |
+| `REDIS_URL`                      | Redis-palvelimen osoite                        | `redis://127.0.0.1:6379`       |
+| `PORT`                           | Sovelluksen kuunteluportti                     | `3001`                         |
+| `BIND_ADDR`                      | Kuunteluosoite                                 | `0.0.0.0`                      |
+| `HOST_PORT`                      | Dockerin julkaisema portti                     | `3001`                         |
+| `PUBLIC_HOST`, `PUBLIC_PROTOCOL` | Palvelimen julkinen osoite ja protokolla       | Dockerissa `localhost`, `http` |
+| `QR_HOST`, `QR_PROTOCOL`         | QR-koodeihin tulostettava osoite ja protokolla | Dockerissa `localhost`, `http` |
+
+`.env` on tarkoitettu paikallisille salaisuuksille, ja se on rajattu pois Docker-kuvan rakennuskontekstista sekä Gitistä. Älä lähetä sitä versionhallintaan. Tuotantokäytössä käytä vahvaa salasanaa ja satunnaista istuntoavainta.
+
+## Tietojen tallennus ja varmuuskopiointi
+
+- `database/trash.db` sisältää käyttäjät, astiat, tyhjennyskirjaukset ja auditointitiedot.
+- `logs/server.log` sisältää palvelimen pyyntö- ja virhelokeja.
+- `database/backups/` sisältää hallintatoimintojen luomia JSON-varmuuskopioita.
+- Docker Compose liittää tietokannan ja lokit projektihakemistoihin. Redis käyttää erillistä Docker-volyymia.
+
+Ota tietokannasta erillinen varmuuskopio ennen ylläpitotoimia. SQLite-tiedosto kannattaa kopioida, kun sovellus on pysäytetty:
 
 ```powershell
-git config --global core.longpaths true
+docker compose stop app
+Copy-Item database/trash.db database/trash.db.bak
+docker compose start app
 ```
 
-### 3) Install dependencies when needed
+## Keskeiset rajapinnat
 
-If `package.json` or `package-lock.json` changed:
+| Rajapinta                        | Tarkoitus                                                                       |
+| -------------------------------- | ------------------------------------------------------------------------------- |
+| `POST /api/log`                  | Lisää hyväksytyn käyttäjän tyhjennyskirjauksen                                  |
+| `GET /api/status`                | Astiat ja niiden viimeisimmät tyhjennysajat                                     |
+| `GET /api/heatmap`               | Astioiden käyttökerrat; `range=hour`, `day` tai `week` rajaa ajanjakson         |
+| `GET /api/activity`              | Viimeisimmät käyttäjien ja astioiden tapahtumat                                 |
+| `GET /api/ranking`               | Astioiden käyttökerrat järjestettynä määrän mukaan                              |
+| `GET /api/logs`                  | Viimeisimmät kirjaukset; `bin_id` rajaa yhteen astiaan                          |
+| `GET /api/qr/:bin`               | Luo astian QR-koodin ja palauttaa sen URL-osoitteen                             |
+| `POST /api/admin/login`          | Aloittaa hallintaistunnon                                                       |
+| `POST /api/admin/logout`         | Päättää hallintaistunnon                                                        |
+| `POST /api/admin/reset-logs`     | Tyhjentää kaikki kirjaukset tai valitun astian kirjaukset varmuuskopion jälkeen |
+| `POST /api/admin/reset-all-bins` | Palauttaa astioiden sijainnit koordinaatteihin `0,0` varmuuskopion jälkeen      |
 
-```bash
-npm ci --omit=dev
+## Tietoturvahuomio
+
+Hallintasivut ja resetointitoiminnot tarkistavat kirjautumisistunnon. Käyttäjien API-reitit (`/api/users`) eivät tällä hetkellä tarkista ylläpitäjän istuntoa. Pidä palvelu luotetussa tapahtumaverkossa ja palomuurin takana; älä julkaise sitä suoraan internetiin ennen näiden reittien suojaamista.
+
+Älä julkaise Redis-porttia internetiin. Kun sovellusta käytetään HTTPS:n takana, aseta `PUBLIC_PROTOCOL=https`, jotta istuntoeväste merkitään suojatuksi.
+
+## Vianmääritys
+
+- **Kirjaus ei onnistu:** tarkista käyttäjänimen kirjoitusasu ja että nimi on lisätty hallintapaneelissa. Tarkista myös, ettei samaa astiaa kirjattu viimeisen 10 minuutin aikana.
+- **Kirjautuminen ei säily:** varmista, että Redis toimii ja `REDIS_URL` osoittaa oikeaan palvelimeen. Tarkista, että `SESSION_SECRET` on asetettu.
+- **QR-koodi ohjaa väärään osoitteeseen:** tarkista `QR_HOST` ja `QR_PROTOCOL` sekä luo QR-tarrat uudelleen.
+- **Tietokantaa ei voi avata:** käynnistä palvelin projektin juurihakemistosta ja varmista, että `database/` on kirjoitettavissa.
+- **Docker-palvelu ei käynnisty:** tarkista tila komennolla `docker compose ps` ja lokit komennolla `docker compose logs app`.
+
+## Projektin rakenne
+
+```text
+public/       Käyttöliittymät ja selainpuolen JavaScript
+server/       Express-palvelin, tietokanta, middleware ja API-reitit
+database/     SQLite-tietokanta ja varmuuskopiot
+logs/         Palvelimen lokit
+scripts/      Ylläpito- ja alustuskomennot
+Dockerfile    Node.js-sovelluksen kuva
+docker-compose.yml  Sovellus- ja Redis-palvelut
 ```
-
-If dependencies did not change, you can skip this step.
-
-### 4) Restart the app
-
-When running with pm2:
-
-```bash
-pm2 restart trash_heatmap
-```
-
-When running directly with Node:
-
-```bash
-# stop old process, then start again
-node server/server.js
-```
-
-### 5) Verify deployment
-
-```bash
-pm2 logs trash_heatmap --lines 100
-```
-
-Then open:
-
-- `http://localhost:3001/dashboard.html`
-- `http://localhost:3001/api/admin/check`
-
-Expected result: dashboard loads and API responds without server errors.
-
-### Quick safe routine (recommended)
-
-```bash
-git pull --ff-only origin main
-npm ci --omit=dev
-pm2 restart trash_heatmap
-pm2 logs trash_heatmap --lines 50
-```
-
-----
-
-## Admin access
-
-There is a simple admin login flow used for the demo/dev setup. Default credentials used in this project:
-
-- username: `Buildcat`
-- password: `buildcat`
-
-Use `/admin_login.html` to sign in. Once signed in, the server will set a session and admin-only pages (`/admin.html`, `/bin_editor.html`, `/qr_labels.html`) become accessible.
-
-To check login status from client-side code the app uses `/api/admin/check`.
-
-----
-
-## Important server-side endpoints (examples)
-
-- `GET /api/status` — returns the current list of bins and last-empty timestamps
-- `GET /api/heatmap` — returns heatmap points (x,y,value)
-- `GET /api/activity` — recent logs / worker activity
-- `GET /api/ranking` — empties per bin (for Top Used Bins)
-- `POST /api/admin/login` — admin login
-- `POST /api/admin/logout` — admin logout
-
-Use these endpoints from the frontend pages (dashboard, charts) — they are already wired into the client code.
-
-----
-
-## Logging
-
-Server requests and errors are written to `logs/server.log`. This helps triage crashes and unexpected errors during an event. Tail the file during testing:
-
-```bash
-tail -f logs/server.log
-```
-
-----
-
-## Project structure (high level)
-
-```
-trash_heatmap/
-├─ public/               # static UI pages and client JS
-│  ├─ components/navbar.html
-│  ├─ js/site.js         # site helpers: logout, markActiveNav, adjustNavbarAuth
-│  ├─ js/dashboard.js    # dashboard logic (heatmap + markers)
-│  ├─ js/bin_times.js    # charts page
-│  └─ map/*
-├─ server/
-│  ├─ middleware/adminAuth.js
-│  ├─ routes/*.js        # API routes (auth, bins, logs, users, qrLabels)
-│  └─ server.js          # app entrypoint
-├─ database/             # sqlite DB file
-└─ README.md
-```
-
-----
-
-## Notes & next steps
-
-- The admin credentials are hard-coded for demo purposes. Move to a proper user table or environment-driven secrets for production.
-- The server uses a basic file logger; consider rotating logs or using a structured logger (winston/pino) for production.
-- Navbar link hiding is client-side only — server-side routes remain protected (so URLs aren't accessible without login).
-
-## Running with PM2 (recommended for production/event hosts)
-
-This app is compatible with `pm2` — it runs the same Express process and routes when managed by pm2. A provided `ecosystem.config.js` already points at `server/server.js` and sets the working directory.
-
-Quick pm2 commands:
-
-```bash
-pm2 start ecosystem.config.js            # start (development env)
-pm2 start ecosystem.config.js --env production  # start with production env
-pm2 restart trash_heatmap                # restart after code changes
-pm2 logs trash_heatmap                    # view stdout/stderr logs
-pm2 save                                  # persist process list across reboots
-pm2 startup                                # generate systemd startup script
-```
-
-Notes when using pm2:
-- Ensure the user running pm2 has write permissions to `database/backups/` (used by the reset tool).
-- If you enable `watch` in pm2, add `ignore_watch: ['database/backups','logs','node_modules']` to avoid restarts when backups or logs are written.
-- Configure environment variables (see below) in `ecosystem.config.js` under `env_production` and start with `--env production`.
-
-## Important environment variables
-
-Set these in your shell or `ecosystem.config.js` when running under pm2:
-
-- `PORT` — listen port (default: 3001)
-- `SESSION_SECRET` — session cookie secret (avoid the default in production)
-- `PUBLIC_HOST` / `PUBLIC_PROTOCOL` — used when building absolute URLs (QR generation, logs)
-
-Example snippet (in `ecosystem.config.js`):
-
-```js
-env_production: {
-	NODE_ENV: 'production',
-	PORT: 3001,
-	SESSION_SECRET: process.env.SESSION_SECRET || 'KuMm1tus',
-	PUBLIC_HOST: 'tyhjennys.dy.fi',
-	PUBLIC_PROTOCOL: 'https'
-}
-```
-
-## Running Redis (session store)
-
-This project can use Redis as a shared session store (recommended for production or when running multiple Node processes / pm2 in cluster mode). The server reads `REDIS_URL` (default: `redis://127.0.0.1:6379`) and uses `connect-redis` + `redis` client to persist sessions.
-
-Quick options to run Redis locally:
-
-- Run with Docker (recommended for a local/test instance):
-
-```bash
-# start a Redis container (exposes 6379)
-docker run -d --name trash-redis -p 6379:6379 redis:7-alpine
-
-# stop and remove when done
-docker stop trash-redis && docker rm trash-redis
-```
-
-- Ubuntu / Debian (apt):
-
-```bash
-sudo apt update
-sudo apt install -y redis-server
-sudo systemctl enable --now redis-server
-```
-
-- macOS (Homebrew):
-
-```bash
-brew install redis
-brew services start redis
-```
-
-Verify Redis is running:
-
-```bash
-redis-cli PING
-# should reply: PONG
-```
-
-NPM packages required for Redis session store (already added to this project):
-
-```bash
-npm install connect-redis redis
-```
-
-Environment variable example (export or set in `ecosystem.config.js`):
-
-```bash
-export REDIS_URL=redis://127.0.0.1:6379
-export SESSION_SECRET="<strong-random-secret>"
-```
-
-Security and production notes:
-
-- Do not expose Redis directly to the public internet. Use a private network or SSH tunnel when accessing remote Redis instances.
-- Use a strong `SESSION_SECRET` and do not commit it to source control.
-- Consider Redis AUTH/password or network-level protections for production deployments.
-- Monitor Redis memory usage if you store many sessions.
-
-
-## Admin tool: Reset / Clear logs
-
-An admin-only HTTP endpoint lets you back up and clear bin logs safely. It is protected by the same admin session used for the admin pages.
-
-- Endpoint: `POST /api/admin/reset-logs`
-- Body (JSON): `{}` to clear all logs, or `{ "bin_id": 7 }` to clear only bin 7
-- Behavior: backs up selected logs to `database/backups/` as a timestamped JSON file, then deletes the rows and runs `VACUUM`.
-- Usage (example):
-
-```bash
-# login as admin (save cookies)
-curl -c admin_cookies.txt -H "Content-Type: application/json" \
-	-d '{"username":"Buildcat","password":"buildcat"}' \
-	-X POST http://127.0.0.1:3001/api/admin/login
-
-# clear all logs (admin session required)
-curl -b admin_cookies.txt -X POST -H "Content-Type: application/json" \
-	-d '{}' http://127.0.0.1:3001/api/admin/reset-logs -v
-```
-
-Backups are saved under `database/backups/` (created automatically). The endpoint returns a JSON response with `backup` path and `deleted` count when successful.
-
-## Username matching: case-insensitive logging
-
-The bin-logging API now accepts usernames case-insensitively. That means workers can enter `User`, `user`, or `uSer` and the server will match the registered user regardless of case and record the canonical username from the `users` table in logs. This prevents accidental duplicates and normalizes display in reports.
-
-If you prefer a different canonicalisation (for example always store lower-case usernames), consider normalizing usernames on insert in `server/routes/users.js`.
-
-## Logout behavior (client/server)
-
-Logout was hardened so browsers send session cookies and the server clears them reliably:
-
-- Client: `public/js/site.js` now includes `credentials: 'same-origin'` on logout requests so the session cookie is sent.
-- Server: `POST /api/admin/logout` destroys the session and clears the `connect.sid` cookie.
-
-When testing over HTTPS, ensure you access the site with the same hostname used in the certificate (or use `curl --resolve` to map the host to localhost for testing). Use an incognito/private browser window to avoid stale cookies when validating logout behavior.
-
-----
-
-## License
-
-MIT
-
-----
-
-## Troubleshooting (quick)
-
-- Problem: "Server not starting / port already in use"
-	- Cause: another process is listening on port 3001 or a previous server instance didn't exit.
-	- Fix: find and stop the process (e.g., `lsof -i :3001` then `kill <pid>`), or change port in `server/server.js` temporarily.
-
-- Problem: "Pages still visible when logged out"
-	- Cause: client-side navbar hiding is UX-only. The server already protects `admin.html`, `bin_editor.html` and `qr_labels.html` via middleware. Make sure you restarted the server after the change.
-	- Fix: Verify server routes by requesting the page directly (curl -I http://localhost:3001/bin_editor.html) — you should see a 302 redirect to `/admin_login.html` when unauthenticated.
-
-- Problem: "Heatmap misaligned on the map image"
-	- Cause: heatmap renderer was created before the map image finished loading, or the page has padding/margins that offset the image.
-	- Fix: Refresh the page; the code now waits for image load before creating the heatmap. If alignment still looks off, try adding `?debug=1` to the dashboard URL to display debug dots at heatmap points.
-
-- Problem: "Unable to generate QR codes / blank images"
-	- Cause: server dependency for QR generation may be missing or the QR endpoint returned an error.
-	- Fix: Check server logs (`tail -f logs/server.log`) for errors from `/api/qr/:id` and confirm `qrcode` package is installed. Restart server after installing missing deps.
-
-If you hit any other issues, tail `logs/server.log` for detailed request and error traces.

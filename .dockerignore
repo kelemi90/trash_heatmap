@@ -1,0 +1,11 @@
+.git
+.vscode
+node_modules
+.env
+.env.*
+!.env.example
+database
+logs
+cookies.txt
+.server.pid
+*.log

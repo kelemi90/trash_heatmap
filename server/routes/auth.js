@@ -6,7 +6,8 @@ router.post("/admin/login",(req,res)=>{
 const username = req.body?.username
 const password = req.body?.password
 
-if(username === "Buildcat" && password === "buildcat"){
+if(process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD &&
+	username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD){
 
 req.session.admin = true
 	// store admin username for audit logging

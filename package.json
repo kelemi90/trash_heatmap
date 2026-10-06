@@ -22,12 +22,13 @@
   "homepage": "https://github.com/kelemi90/trash_heatmap#readme",
   "dependencies": {
     "bcrypt": "^6.0.0",
-    "connect-redis": "^9.0.0",
+    "connect-redis": "^10.0.0",
     "cors": "^2.8.6",
+    "dotenv": "^18.0.5",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
     "qrcode": "^1.5.4",
-    "redis": "^5.11.0",
+    "redis": "^6.3.0",
     "selfsigned": "^5.5.0",
     "sqlite3": "^6.0.1"
   }

@@ -1,5 +1,6 @@
 const express = require("express")
 const path = require("path")
+require("dotenv").config({ path: path.join(__dirname, "../.env") })
 const os = require("os")
 const session = require("express-session")
 const sqlite3 = require("sqlite3").verbose()
